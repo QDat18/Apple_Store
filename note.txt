@@ -1,0 +1,7 @@
+1, Tổng quan về tích hợp Google Sign-In (login va regist)
+Mục tiêu: Cho phép người dùng đăng ký và đăng nhập bằng tài khoản Google, giảm bước nhập email/mật khẩu thủ công.
+Công nghệ: Sử dụng Google Sign-In với Firebase Authentication cho web.
+Quy trình:
+Người dùng nhấp nút "Đăng nhập/Đăng ký với Google".
+Firebase xử lý luồng OAuth 2.0 với Google, trả về thông tin người dùng (email, tên, ảnh đại diện).
+Lưu thông tin vào bảng users và tạo session.
