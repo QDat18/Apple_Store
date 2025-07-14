@@ -32,6 +32,19 @@ while ($row = $result->fetch_assoc()) {
     $products[] = $row;
 }
 $stmt->close();
+
+// Lấy dữ liệu tin tức (blog) cho section Blog
+$news_per_page = 2;
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$offset = ($page - 1) * $news_per_page;
+$total_news = $conn->query("SELECT COUNT(*) FROM news")->fetch_row()[0];
+$total_pages = ceil($total_news / $news_per_page);
+$news_stmt = $conn->prepare("SELECT id, title, content, created_date, image_url FROM news ORDER BY created_date DESC LIMIT ? OFFSET ?");
+$news_stmt->bind_param("ii", $news_per_page, $offset);
+$news_stmt->execute();
+$news_result = $news_stmt->get_result();
+$news_items = $news_result->fetch_all(MYSQLI_ASSOC);
+$news_stmt->close();
 ?>
 
 <!DOCTYPE html>
@@ -45,16 +58,15 @@ $stmt->close();
     <link rel="stylesheet" href="css/user.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/footer.css">
-    <script href=""></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 </head>
 <body>
     <?php include 'includes/header.php'; ?>
 
     <main>
-        <!-- Hero slider section (updated to match index.html structure) -->
-        <section class="hero-slider">
+        <!-- Hero Slider Section -->
+        <section class="hero-slider section-padding">
             <div class="slides-container">
-                <!-- Add slides dynamically if needed; for now, static like index.html -->
                 <div class="slide active" style="background-image: url('assets/images/hero1.jpg');">
                     <div class="hero-content">
                         <h1>Đỉnh cao công nghệ</h1>
@@ -64,102 +76,135 @@ $stmt->close();
                         </div>
                     </div>
                 </div>
-                <!-- Add more slides as needed -->
+                <div class="slide" style="background-image: url('assets/images/hero2.jpg');">
+                    <div class="hero-content">
+                        <h1>Ưu đãi hấp dẫn</h1>
+                        <p>Khám phá các sản phẩm giảm giá hôm nay</p>
+                        <div class="hero-buttons">
+                            <a href="promotion.php" class="btn btn-primary">Xem khuyến mãi</a>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="slider-controls">
                 <button class="prev-slide"><i class="fas fa-chevron-left"></i></button>
-                <div class="slide-indicators">
-                    <!-- Indicators will be added dynamically -->
-                </div>
+                <div class="slide-indicators"></div>
                 <button class="next-slide"><i class="fas fa-chevron-right"></i></button>
             </div>
         </section>
 
-        <!-- Categories section -->
-        <section class="categories">
-            <h2>Khám phá các Danh mục</h2>
-            <div class="categories__grid">
-                <div class="category-card">
-                    <img src="assets/images/iphone.jpg" alt="iPhone">
-                    <h3>iPhone</h3>
-                    <a href="products.php?category=iphone" class="category-link">Xem ngay</a>
-                </div>
-                <div class="category-card">
-                    <img src="assets/images/mac.jpg" alt="Mac">
-                    <h3>Mac</h3>
-                    <a href="products.php?category=mac" class="category-link">Xem ngay</a>
-                </div>
-                <div class="category-card">
-                    <img src="assets/images/ipad.jpg" alt="iPad">
-                    <h3>iPad</h3>
-                    <a href="products.php?category=ipad" class="category-link">Xem ngay</a>
-                </div>
-                <div class="category-card">
-                    <img src="assets/images/watch.jpg" alt="Watch">
-                    <h3>Watch</h3>
-                    <a href="products.php?category=watch" class="category-link">Xem ngay</a>
-                </div>
-                <div class="category-card">
-                    <img src="assets/images/airpods.jpg" alt="AirPods">
-                    <h3>AirPods</h3>
-                    <a href="products.php?category=accessories" class="category-link">Xem ngay</a>
-                </div>
-                <div class="category-card">
-                    <img src="assets/images/accessories.jpg" alt="Phụ kiện">
-                    <h3>Phụ kiện</h3>
-                    <a href="products.php?category=accessories" class="category-link">Xem ngay</a>
+        <!-- Product Categories Section -->
+        <section class="product-categories-section section-padding">
+            <h2 class="section-title">Khám phá các Danh mục</h2>
+            <div class="container">
+                <div class="product-grid">
+                    <div class="category-card">
+                        <img src="assets/images/iphone.jpg" alt="iPhone" class="category-img">
+                        <h5>iPhone</h5>
+                        <a href="products.php?category=iphone" class="btn btn-outline">Xem ngay</a>
+                    </div>
+                    <div class="category-card">
+                        <img src="assets/images/mac.jpg" alt="Mac" class="category-img">
+                        <h5>Mac</h5>
+                        <a href="products.php?category=mac" class="btn btn-outline">Xem ngay</a>
+                    </div>
+                    <div class="category-card">
+                        <img src="assets/images/ipad.jpg" alt="iPad" class="category-img">
+                        <h5>iPad</h5>
+                        <a href="products.php?category=ipad" class="btn btn-outline">Xem ngay</a>
+                    </div>
+                    <div class="category-card">
+                        <img src="assets/images/watch.jpg" alt="Watch" class="category-img">
+                        <h5>Watch</h5>
+                        <a href="products.php?category=watch" class="btn btn-outline">Xem ngay</a>
+                    </div>
+                    <div class="category-card">
+                        <img src="assets/images/airpods.jpg" alt="AirPods" class="category-img">
+                        <h5>AirPods</h5>
+                        <a href="products.php?category=accessories" class="btn btn-outline">Xem ngay</a>
+                    </div>
+                    <div class="category-card">
+                        <img src="assets/images/accessories.jpg" alt="Phụ kiện" class="category-img">
+                        <h5>Phụ kiện</h5>
+                        <a href="products.php?category=accessories" class="btn btn-outline">Xem ngay</a>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- Flash Sale section -->
-        <section class="flash-sale">
-            <h2>Flash Sale - Giảm giá sốc</h2>
-            <div class="flash-sale__timer">
-                <p>Kết thúc sau: <span id="timer">00:00:00</span></p>
+        <!-- Flash Sale Section -->
+        <section class="flash-sale-section section-padding">
+            <h2 class="section-title">Flash Sale - Giảm giá sốc</h2>
+            <div class="flash-sale-timer">
+                <span>Kết thúc sau:</span> <span id="countdown">00:00:00</span>
             </div>
-            <div class="flash-sale__products">
-                <?php foreach ($products as $index => $product): ?>
-                    <?php if ($index < 4): // Giới hạn 4 sản phẩm cho flash sale ?>
-                        <div class="product-card">
-                            <img src="<?= htmlspecialchars($product['image']) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
-                            <h3><?= htmlspecialchars($product['name']) ?></h3>
-                            <p class="price">$<?= number_format($product['price'], 2) ?></p>
-                            <a href="cart.php?action=add&id=<?= $product['id'] ?>" class="product-button">Thêm vào giỏ</a>
-                        </div>
-                    <?php endif; ?>
-                <?php endforeach; ?>
+            <div class="flash-sale-filter">
+                <button class="active" data-filter="all">Tất cả</button>
+                <button data-filter="iphone">iPhone</button>
+                <button data-filter="ipad">iPad</button>
+                <button data-filter="mac">Mac</button>
+                <button data-filter="accessories">Phụ kiện</button>
             </div>
-        </section>
-
-        <!-- Featured Products section -->
-        <section class="featured-products">
-            <h2>Sản phẩm nổi bật</h2>
-            <div class="filter-tabs">
-                <a href="products.php" class="tab active">Tất cả</a>
-                <a href="products.php?category=iphone" class="tab">iPhone</a>
-                <a href="products.php?category=ipad" class="tab">iPad</a>
-                <a href="products.php?category=mac" class="tab">MacBook</a>
-                <a href="products.php?category=accessories" class="tab">AirPods</a>
-                <a href="products.php?category=accessories" class="tab">Phụ kiện</a>
-            </div>
-            <div class="products-grid">
-                <?php foreach ($products as $product): ?>
-                    <div class="product-card">
-                        <img src="<?= htmlspecialchars($product['image']) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
-                        <h3><?= htmlspecialchars($product['name']) ?></h3>
-                        <p class="price">$<?= number_format($product['price'], 2) ?></p>
-                        <p class="stock"><?= $product['stock'] > 0 ? "Còn {$product['stock']} sản phẩm" : "Hết hàng" ?></p>
-                        <?php if ($product['stock'] > 0): ?>
-                            <a href="cart.php?action=add&id=<?= $product['id'] ?>" class="product-button">Thêm vào giỏ</a>
+            <div class="flash-sale-products-container">
+                <div class="product-grid">
+                    <?php foreach ($products as $index => $product): ?>
+                        <?php if ($index < 4): // Giới hạn 4 sản phẩm cho flash sale ?>
+                            <div class="flash-sale-product" data-category="<?= htmlspecialchars(strtolower($product['category'] ?? $product['name'])) ?>" style="--product-index: <?= $index; ?>">
+                                <img src="<?= htmlspecialchars($product['image']) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
+                                <div class="flash-sale-product-content">
+                                    <h5><?= htmlspecialchars($product['name']) ?></h5>
+                                    <p class="price">$<?= number_format($product['price'], 2) ?></p>
+                                    <p class="stock"><?= $product['stock'] > 0 ? "Còn {$product['stock']} sản phẩm" : "Hết hàng" ?></p>
+                                    <?php if ($product['stock'] > 0): ?>
+                                        <a href="cart.php?action=add&id=<?= $product['id'] ?>" class="btn">Thêm vào giỏ</a>
+                                    <?php endif; ?>
+                                    <span class="discount-badge">-15%</span>
+                                </div>
+                            </div>
                         <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <div class="flash-sale-navigation">
+                <button id="prev-flash-sale" disabled><i class="fas fa-chevron-left"></i></button>
+                <span class="page-indicator">1/1</span>
+                <button id="next-flash-sale"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </section>
+
+        <!-- Featured Products Section -->
+        <section class="featured-products-section section-padding">
+            <h2 class="section-title">Sản phẩm nổi bật</h2>
+            <div class="featured-products-filter">
+                <button class="active" data-filter="all">Tất cả</button>
+                <button data-filter="iphone">iPhone</button>
+                <button data-filter="ipad">iPad</button>
+                <button data-filter="mac">Mac</button>
+                <button data-filter="accessories">Phụ kiện</button>
+            </div>
+            <div class="product-grid">
+                <?php foreach ($products as $index => $product): ?>
+                    <div class="featured-product" data-category="<?= htmlspecialchars(strtolower($product['category'] ?? $product['name'])) ?>" style="--product-index: <?= $index; ?>">
+                        <img src="<?= htmlspecialchars($product['image']) ?>" alt="<?= htmlspecialchars($product['name']) ?>">
+                        <div class="featured-product-content">
+                            <h5><?= htmlspecialchars($product['name']) ?></h5>
+                            <p class="price">$<?= number_format($product['price'], 2) ?></p>
+                            <?php if ($product['stock'] > 0): ?>
+                                <a href="cart.php?action=add&id=<?= $product['id'] ?>" class="btn">Thêm vào giỏ</a>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
+            <div class="featured-products-navigation">
+                <button id="prev-featured" disabled><i class="fas fa-chevron-left"></i></button>
+                <span class="page-indicator">1/1</span>
+                <button id="next-featured"><i class="fas fa-chevron-right"></i></button>
+            </div>
         </section>
 
-        <!-- Product Showcase section (added to match index.html) -->
-        <section class="product-showcase">
+        <!-- Product Showcase Section -->
+        <section class="product-showcase section-padding">
             <div class="product-image">
                 <img src="assets/images/iphone15.jpg" alt="iPhone 15" class="product-img">
                 <div class="image-overlay">New Arrival</div>
@@ -175,100 +220,101 @@ $stmt->close();
                     <li><span class="feature-icon">🔋</span> Pin 15 giờ</li>
                 </ul>
                 <p class="price">Chỉ từ: <span class="price-highlight">34.990.000₫</span></p>
-                <button class="buy-now-btn">Sở hữu ngay!</button>
+                <a href="products.php?category=iphone" class="buy-now-btn">Sở hữu ngay!</a>
             </div>
         </section>
 
-        <!-- Why Choose Us section -->
-        <section class="why-choose-us">
-            <h2>Tại sao chọn Anh Em Rọt Store?</h2>
-            <div class="why-choose-us__grid">
-                <div class="reason-card">
-                    <img src="assets/images/authentic.png" alt="Chính hãng">
-                    <h3>Chính hãng 100%</h3>
+        <!-- Why Choose Us Section -->
+        <section class="why-choose-us section-padding">
+            <h2 class="section-title">Tại sao chọn Anh Em Rọt Store?</h2>
+            <div class="features-grid">
+                <div class="feature-item" style="--delay: 0.1s">
+                    <i class="fas fa-check-circle feature-icon"></i>
+                    <h4>Chính hãng 100%</h4>
                     <p>Sản phẩm Apple nguyên seal, bảo hành toàn cầu, chất lượng đỉnh cao.</p>
                 </div>
-                <div class="reason-card">
-                    <img src="assets/images/delivery.png" alt="Giao hàng">
-                    <h3>Giao hàng siêu tốc</h3>
+                <div class="feature-item" style="--delay: 0.2s">
+                    <i class="fas fa-truck feature-icon"></i>
+                    <h4>Giao hàng siêu tốc</h4>
                     <p>Đưa sản phẩm đến tay bạn trong 24h, miễn phí lắp đặt.</p>
                 </div>
-                <div class="reason-card">
-                    <img src="assets/images/price.png" alt="Giá tốt">
-                    <h3>Giá siêu hời</h3>
+                <div class="feature-item" style="--delay: 0.3s">
+                    <i class="fas fa-tags feature-icon"></i>
+                    <h4>Giá siêu hời</h4>
                     <p>Giá tốt nhất thị trường, ưu đãi độc quyền mỗi ngày.</p>
                 </div>
-                <div class="reason-card">
-                    <img src="assets/images/support.png" alt="Hỗ trợ">
-                    <h3>Hỗ trợ 24/7</h3>
+                <div class="feature-item" style="--delay: 0.4s">
+                    <i class="fas fa-headset feature-icon"></i>
+                    <h4>Hỗ trợ 24/7</h4>
                     <p>Chuyên gia luôn sẵn sàng, giải đáp mọi lúc, mọi nơi.</p>
                 </div>
             </div>
         </section>
 
-        <!-- Testimonials section -->
-        <section class="testimonials">
-            <h2>Khách hàng nói gì?</h2>
-            <div class="testimonials__carousel">
-                <div class="testimonial-card">
-                    <div class="rating">★★★★★</div>
-                    <p>"Anh Em Rọt Store mang đến trải nghiệm mua sắm đỉnh cao! Giao hàng nhanh, sản phẩm xịn, tư vấn siêu nhiệt tình!"</p>
-                    <div class="author">
-                        <p>Nguyễn Văn A</p>
-                        <span>Chủ doanh nghiệp</span>
+        <!-- Testimonials Section -->
+        <section class="testimonials-section section-padding">
+            <h2 class="section-title">Khách hàng nói gì?</h2>
+            <div class="testimonial-carousel">
+                <div class="carousel-inner">
+                    <div class="testimonial-card">
+                        <div class="rating">★★★★★</div>
+                        <p>"Anh Em Rọt Store mang đến trải nghiệm mua sắm đỉnh cao! Giao hàng nhanh, sản phẩm xịn, tư vấn siêu nhiệt tình!"</p>
+                        <div class="customer-info">
+                            <img src="assets/images/customer1.jpg" alt="Nguyễn Văn A">
+                            <div>
+                                <p class="name">Nguyễn Văn A</p>
+                                <p class="title">Chủ doanh nghiệp</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="testimonial-card">
-                    <div class="rating">★★★★★</div>
-                    <p>"MacBook Pro từ Anh Em Rọt Store quá hoàn hảo! Dịch vụ chăm sóc khách hàng khiến tôi muốn quay lại mãi."</p>
-                    <div class="author">
-                        <p>Lê Thị B</p>
-                        <span>Thiết kế đồ họa</span>
+                    <div class="testimonial-card">
+                        <div class="rating">★★★★★</div>
+                        <p>"MacBook Pro từ Anh Em Rọt Store quá hoàn hảo! Dịch vụ chăm sóc khách hàng khiến tôi muốn quay lại mãi."</p>
+                        <div class="customer-info">
+                            <img src="assets/images/customer2.jpg" alt="Lê Thị B">
+                            <div>
+                                <p class="name">Lê Thị B</p>
+                                <p class="title">Thiết kế đồ họa</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="testimonial-card">
-                    <div class="rating">★★★★★</div>
-                    <p>"Giá tốt, sản phẩm chính hãng, bảo hành uy tín. Anh Em Rọt Store là nơi đáng tin cậy nhất!"</p>
-                    <div class="author">
-                        <p>Phạm Minh C</p>
-                        <span>Sinh viên</span>
+                    <div class="testimonial-card">
+                        <div class="rating">★★★★★</div>
+                        <p>"Giá tốt, sản phẩm chính hãng, bảo hành uy tín. Anh Em Rọt Store là nơi đáng tin cậy nhất!"</p>
+                        <div class="customer-info">
+                            <img src="assets/images/customer3.jpg" alt="Phạm Minh C">
+                            <div>
+                                <p class="name">Phạm Minh C</p>
+                                <p class="title">Sinh viên</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="carousel-controls">
-                <button class="prev"><i class="fas fa-chevron-left"></i></button>
-                <button class="next"><i class="fas fa-chevron-right"></i></button>
-            </div>
+            <button class="carousel-prev"><i class="fas fa-chevron-left"></i></button>
+            <button class="carousel-next"><i class="fas fa-chevron-right"></i></button>
         </section>
 
-        <!-- News section (renamed to Blog section to match index.html) -->
-        <section class="blog-section">
-            <h2>Tin tức mới nhất</h2>
-            <div class="blog-grid">
-                <!-- Tin tức tĩnh, có thể thay bằng động -->
-                <div class="blog-post-card">
-                    <img src="assets/images/news1.jpg" alt="Tin tức">
-                    <div class="blog-content">
-                        <div class="post-meta"><i class="fas fa-calendar-alt"></i> 10/07/2025</div>
-                        <h4>iPhone 16 ra mắt</h4>
-                        <p>Khám phá những tính năng mới của iPhone 16!</p>
-                        <a href="news.php" class="read-more">Đọc thêm</a>
+        <!-- Blog Section -->
+        <section class="blog-section section-padding">
+            <h2 class="section-title">Tin tức mới nhất</h2>
+            <div class="blog-grid" id="blog-grid">
+                <?php foreach ($news_items as $news): ?>
+                    <div class="blog-post-card">
+                        <img src="<?= htmlspecialchars($news['image_url']) ?>" alt="<?= htmlspecialchars($news['title']) ?>">
+                        <div class="blog-content">
+                            <div class="post-meta"><i class="fas fa-calendar-alt"></i> <?= htmlspecialchars(date('d/m/Y', strtotime($news['created_date']))) ?></div>
+                            <h4><?= htmlspecialchars($news['title']) ?></h4>
+                            <p><?= htmlspecialchars(substr($news['content'], 0, 100)) . '...' ?></p>
+                            <a href="news_detail.php?id=<?= $news['id'] ?>" class="read-more">Đọc thêm</a>
+                        </div>
                     </div>
-                </div>
-                <div class="blog-post-card">
-                    <img src="assets/images/news2.jpg" alt="Tin tức">
-                    <div class="blog-content">
-                        <div class="post-meta"><i class="fas fa-calendar-alt"></i> 10/07/2025</div>
-                        <h4>MacBook M3 sắp ra mắt</h4>
-                        <p>Hiệu năng vượt trội với chip M3 mới!</p>
-                        <a href="news.php" class="read-more">Đọc thêm</a>
-                    </div>
-                </div>
+                <?php endforeach; ?>
             </div>
             <div class="pagination">
-                <button id="prev-page" class="disabled">❮ Trước</button>
-                <span id="page-indicator">1</span>
-                <button id="next-page">Tiếp ❯</button>
+                <button id="prev-page" <?= $page <= 1 ? 'disabled' : '' ?>>❮ Trước</button>
+                <span id="page-indicator"><?= $page ?></span>
+                <button id="next-page" <?= $page >= $total_pages ? 'disabled' : '' ?>>Tiếp ❯</button>
             </div>
             <div class="view-all-container">
                 <a href="news.php" class="view-all-btn">Xem tất cả</a>
@@ -277,49 +323,8 @@ $stmt->close();
     </main>
 
     <?php include 'includes/footer.php'; ?>
-
+    
+    <button class="back-to-top"><i class="fas fa-arrow-up"></i></button>
     <script src="scripts/main.js"></script>
-    <script>
-        // JavaScript cho Flash Sale timer
-        function startTimer() {
-            const timer = document.getElementById('timer');
-            let time = 3600; // 1 giờ
-            setInterval(() => {
-                let hours = Math.floor(time / 3600);
-                let minutes = Math.floor((time % 3600) / 60);
-                let seconds = time % 60;
-                timer.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                time--;
-                if (time < 0) time = 3600;
-            }, 1000);
-        }
-        startTimer();
-
-        // JavaScript cho carousel testimonials
-        const carousel = document.querySelector('.testimonials__carousel');
-        const prev = document.querySelector('.carousel-controls .prev');
-        const next = document.querySelector('.carousel-controls .next');
-        let currentIndex = 0;
-
-        function updateCarousel() {
-            const width = carousel.querySelector('.testimonial-card').offsetWidth;
-            carousel.style.transform = `translateX(-${currentIndex * width}px)`;
-        }
-
-        prev.addEventListener('click', () => {
-            if (currentIndex > 0) {
-                currentIndex--;
-                updateCarousel();
-            }
-        });
-
-        next.addEventListener('click', () => {
-            if (currentIndex < carousel.querySelectorAll('.testimonial-card').length - 1) {
-                currentIndex++;
-                updateCarousel();
-            }
-        });
-
-    </script>
 </body>
 </html>

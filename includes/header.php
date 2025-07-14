@@ -1,233 +1,200 @@
 <?php
-// include $_SERVER['DOCUMENT_ROOT'].'/Apple_Shop/config/db.php';
-// session_start();
+// if (session_status() === PHP_SESSION_NONE) {
+//     session_start();
+// }
+require_once $_SERVER['DOCUMENT_ROOT'] . '/Apple_Shop/config/db.php';
+
+$is_admin_page = strpos($_SERVER['REQUEST_URI'], '/admin/') !== false;
+
+if ($is_admin_page && isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+    include $_SERVER['DOCUMENT_ROOT'] . '/Apple_Shop/admin/header.php';
+    return;
+}
+
+$user_avatar = '/Apple_Shop/assets/logo/default_avatar.png';
+$user_full_name = 'Tài khoản';
+$is_user_logged_in = false;
+
+if (isset($_SESSION['user_id'])) {
+    $is_user_logged_in = true;
+    $user_id = $_SESSION['user_id'];
+    $stmt = $conn->prepare("
+        SELECT u.full_name, ud.avatar
+        FROM users u
+        LEFT JOIN user_detail ud ON u.id = ud.user_id
+        WHERE u.id = ?
+    ");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($user_data = $result->fetch_assoc()) {
+        $user_full_name = htmlspecialchars($user_data['full_name']);
+        if (!empty($user_data['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . $user_data['avatar'])) {
+            $user_avatar = htmlspecialchars($user_data['avatar']);
+        }
+    }
+    $stmt->close();
+}
+
+// Lấy số lượng sản phẩm trong giỏ hàng
+$cart_count = 0;
+if ($is_user_logged_in) {
+    $stmt = $conn->prepare("SELECT SUM(quantity) as total FROM cart WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($cart_data = $result->fetch_assoc()) {
+        $cart_count = (int)$cart_data['total'];
+    }
+    $stmt->close();
+}
 ?>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apple Shop</title>
-    <link rel="stylesheet" href="/Apple_Shop/css/header.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script src="/Apple_Shop/scripts/header.js" defer></script>
-</head>
-<body>
-    
-</body>
-</html>
+
 <div class="top-bar">
     <div class="top-bar-container">
-      <div class="top-bar-left">
-        <span><i class="fas fa-envelope"></i> anhemrotstore12chuaboc@hvnh.edu.vn</span>
-        <span><i class="fas fa-phone"></i> (+84) 827592304</span>
-      </div>
-      <div class="top-bar-center">
-        <span id="typewriter"></span>
-        <span id="weather" class="weather-info">⛅ Đang tải thời tiết...</span>
-      </div>
-      <div class="top-bar-right">
-        <a href="https://www.instagram.com/_yud.gnauq/"><i class="fab fa-instagram"></i> Instagram</a>
-        <a href="https://web.facebook.com/quys.hokage"><i class="fab fa-facebook"></i> Facebook</a>
-      </div>
+        <div class="top-bar-left">
+            <span><i class="fas fa-envelope"></i> anhemrotstore12chuaboc@hvnh.edu.vn</span>
+            <span><i class="fas fa-phone"></i> (+84) 827592304</span>
+        </div>
+        <div class="top-bar-center">
+            <span id="typewriter"></span>
+            <span id="weather" class="weather-info">⛅ Đang tải thời tiết...</span>
+        </div>
+        <div class="top-bar-right">
+            <a href="https://www.instagram.com/_yud.gnauq/"><i class="fab fa-instagram"></i> Instagram</a>
+            <a href="https://web.facebook.com/quys.hokage"><i class="fab fa-facebook"></i> Facebook</a>
+        </div>
     </div>
-  </div>
+</div>
 
-  <header class="main-header">
+<header class="main-header">
     <div class="header-container">
-      <div class="header-left">
-        <div class="logo">
-          <a href="index.html">
-            <img src="assets/logo/logo.png" alt="Anh Em Rọt Store Logo"
-              style="transition: transform 0.3s ease; display: block;" onmouseover="this.style.transform='scale(1.05)'"
-              onmouseout="this.style.transform='scale(1)'">
-          </a>
+        <div class="header-left">
+            <div class="logo">
+                <a href="/Apple_Shop/index.php">
+                    <img src="/Apple_Shop/assets/logo/logo.png" alt="Apple Store Logo">
+                </a>
+            </div>
+            <nav class="desktop-nav" aria-label="Main navigation">
+                <ul>
+                    <li><a href="/Apple_Shop/index.php" class="<?= basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : '' ?>">Trang chủ</a></li>
+                    <li class="has-dropdown">
+                        <a href="/Apple_Shop/products/products.php" aria-expanded="false" aria-controls="products-dropdown">Sản Phẩm</a>
+                        <div id="products-dropdown">
+                            <ul>
+                                <li><a href="/Apple_Shop/products/iphone.php">📱 iPhone Models</a></li>
+                                <li><a href="/Apple_Shop/products/macbook.php">💻 MacBook & Mac</a></li>
+                                <li><a href="/Apple_Shop/products/ipad.php">🎯 iPad Models</a></li>
+                                <li><a href="/Apple_Shop/products/watch.php">⌚ Apple Watch</a></li>
+                                <li><a href="/Apple_Shop/products/accessories.php">🎧 Accessories</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li><a href="/Apple_Shop/promotion.php" class="<?= basename($_SERVER['PHP_SELF']) === 'promotion.php' ? 'active' : '' ?>">🛠️ Khuyến mại</a></li>
+                    <li><a href="/Apple_Shop/about.php" class="<?= basename($_SERVER['PHP_SELF']) === 'about.php' ? 'active' : '' ?>">ℹ️ Về chúng tôi</a></li>
+                    <li><a href="/Apple_Shop/news.php" class="<?= basename($_SERVER['PHP_SELF']) === 'news.php' ? 'active' : '' ?>">📝 Tin tức</a></li>
+                    <li><a href="/Apple_Shop/contact.php" class="<?= basename($_SERVER['PHP_SELF']) === 'contact.php' ? 'active' : '' ?>">📞 Liên hệ</a></li>
+
+                    <?php if ($is_user_logged_in): ?>
+                        <li class="user-profile-dropdown">
+                            <a href="#" class="user-dropdown-toggle" aria-expanded="false" aria-controls="user-dropdown-menu">
+                                <img src="<?= $user_avatar ?>" alt="Avatar của <?= htmlspecialchars($user_full_name) ?>" class="user-avatar">
+                                <span class="user-name"><?= htmlspecialchars($user_full_name) ?></span>
+                            </a>
+                            <div class="user-dropdown-menu" id="user-dropdown-menu">
+                                <a href="/Apple_Shop/profile.php">👤 Thông tin cá nhân</a>
+                                <a href="/Apple_Shop/my_orders.php">📦 Đơn hàng của tôi</a>
+                                <a href="/Apple_Shop/wishlist.php">❤️ Sản phẩm yêu thích</a>
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                                    <a href="/Apple_Shop/admin/dashboard.php">📊 Bảng điều khiển Admin</a>
+                                <?php endif; ?>
+                                <a href="/Apple_Shop/logout.php">🚪 Đăng xuất</a>
+                            </div>
+                        </li>
+                    <?php else: ?>
+                        <li><a href="/Apple_Shop/login.php" class="<?= basename($_SERVER['PHP_SELF']) === 'login.php' ? 'active' : '' ?>">Đăng nhập</a></li>
+                        <li><a href="/Apple_Shop/register.php" class="<?= basename($_SERVER['PHP_SELF']) === 'register.php' ? 'active' : '' ?>">Đăng ký</a></li>
+                    <?php endif; ?>
+                </ul>
+            </nav>
+            <button class="mobile-menu-toggle" aria-label="Mở menu di động" aria-expanded="false" aria-controls="mobile-nav">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
-        <nav class="desktop-nav">
-          <ul>
-            <li><a href="index.html">Trang chủ</a></li>
-            <li class="has-dropdown">
-              <a href="product.html">Sản Phẩm</a>
-              <div id="products-dropdown">
-                <div class="products-inner-content">
-                  <div class="mega-menu-column main-categories-column">
-                    <div class="category-item">
-                      <a href="iphone.html" data-target-category="iphone-series">
-                        <i class="fab fa-apple" style="margin-right: 8px;"></i>iPhone Series</a>
-                      <div class="subcategory-content" id="iphone-series-content">
-                        <div class="subcategory-title">iPhone Series</div>
-                        <div class="subcategory-grid-links">
-                          <a href="#">iPhone 16</a>
-                          <a href="#">iPhone 15</a>
-                          <a href="#">iPhone 14</a>
-                          <a href="#">iPhone 13</a>
-                          <a href="#">iPhone 12 Pro</a>
-                          <a href="#">iPhone SE</a>
-                          <a href="#">So sánh iPhone</a>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="category-item">
-                      <a href="ipad.html" data-target-category="ipad-models">
-                        <i class="fas fa-tablet-alt" style="margin-right: 8px;"></i>iPad Models
-                      </a>
-                      <div class="subcategory-content" id="ipad-models-content">
-                        <div class="subcategory-title">iPad Models</div>
-                        <div class="subcategory-grid-links">
-                          <a href="#">iPad Pro"</a>
-                          <a href="#">iPad Air</a>
-                          <a href="#">iPad</a>
-                          <a href="#">iPad mini</a>
-                          <a href="#">Apple Pencil</a>
-                          <a href="#">Magic Keyboard</a>
-                          <a href="#">So sánh iPad</a>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="category-item">
-                      <a href="macbook.html" data-target-category="mac-devices">
-                        <i class="fas fa-laptop" style="margin-right: 8px;"></i>Mac Devices
-                      </a>
-                      <div class="subcategory-content" id="mac-devices-content">
-                        <div class="subcategory-title">Mac Devices</div>
-                        <div class="subcategory-grid-links">
-                          <a href="#">MacBook Air</a>
-                          <a href="#">MacBook Pro</a>
-                          <a href="#">iMac</a>
-                          <a href="#">Mac mini</a>
-                          <a href="#">Mac Studio</a>
-                          <a href="#">Mac Pro</a>
-                          <a href="#">So sánh Mac</a>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="category-item">
-                      <a href="watch.html" data-target-category="apple-watch">
-                        <i class="fas fa-clock" style="margin-right: 8px;"></i>Apple Watch
-                      </a>
-                      <div class="subcategory-content" id="apple-watch-content">
-                        <div class="subcategory-title">Apple Watch</div>
-                        <div class="subcategory-grid-links">
-                          <a href="#">Apple Watch Ultra</a>
-                          <a href="#">Apple Watch SE</a>
-                          <a href="#">Apple Watch Nike</a>
-                          <a href="#">Dây đeo Sport</a>
-                          <a href="#">Dây đeo Leather</a>
-                          <a href="#">Dây đeo Milanese</a>
-                          <a href="#">So sánh Apple Watch</a>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="category-item">
-                      <a href="accessory.html" data-target-category="accessories">
-                        <i class="fas fa-headphones" style="margin-right: 8px;"></i>Accessories
-                      </a>
-                      <div class="subcategory-content" id="accessories-content">
-                        <div class="subcategory-title">Accessories</div>
-                        <div class="subcategory-grid-links">
-                          <a href="tainghe.html">AirPods</a>
-                          <a href="#">Apple TV 4K</a>
-                          <a href="#">MagSafe Charger</a>
-                          <a href="#">Ốp lưng iPhone</a>
-                          <a href="#">Magic Keyboard</a>
-                          <a href="#">Magic Mouse</a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="mega-menu-column subcategory-display-column">
-                    <div class="subcategory-content-placeholder">
-                      <p>🖱️ Di chuột qua danh mục để xem chi tiết</p>
-                    </div>
-                  </div>
-                  <div class="mega-menu-column promo-column">
-                    <img src="assets/logo/logo.png" alt="Hot Products">
-                    <p>🔥 Khám phá các sản phẩm hot nhất</p>
-                  </div>
+        <div class="header-right">
+            <div class="search-box">
+                <button class="search-toggle" aria-label="Tìm kiếm"><i class="fas fa-search"></i></button>
+                <div class="search-input-container">
+                    <input type="text" class="search-input" placeholder="Tìm kiếm sản phẩm..." aria-label="Tìm kiếm sản phẩm">
+                    <div class="search-results-container"></div>
                 </div>
-              </div>
-            </li>
-            <li><a href="promotion.html">Khuyến Mại</a></li>
-            <li><a href="about.html">Về chúng tôi</a></li>
-            <li><a href="news.html">Tin Tức</a></li>
-            <li><a href="contact.html">Liên hệ</a></li>
-          </ul>
-        </nav>
-      </div>
-
-      <div class="header-right">
-        <div class="search-box">
-          <i class="fas fa-search search-icon" aria-label="Mở tìm kiếm"></i>
-          <div class="search-input-container">
-            <input type="text" class="search-input" placeholder="Tìm kiếm sản phẩm..." aria-label="Tìm kiếm sản phẩm">
-            <button class="close-search-btn" aria-label="Đóng tìm kiếm">×</button>
-          </div>
-          <div class="search-results-container" role="listbox" style="display: none;"></div>
+            </div>
+            <div class="cart-icon" id="cart-icon-desktop">
+                <a href="/Apple_Shop/cart.php" aria-label="Giỏ hàng (<?= $cart_count ?> sản phẩm)">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count"><?= $cart_count ?></span>
+                </a>
+            </div>
         </div>
-        <div class="cart-icon">
-          <i class="fas fa-shopping-cart"></i>
-          <span class="cart-count">0</span>
+    </div>
+</header>
+
+<div class="mobile-nav" id="mobile-nav">
+    <div class="mobile-nav-header">
+        <div class="logo">
+            <a href="/Apple_Shop/index.php">
+                <img src="/Apple_Shop/assets/logo/logo.png" alt="Apple Store Logo">
+            </a>
         </div>
-        <div id="user-section">
-          <!-- Dynamically updated by JavaScript -->
-        </div>
-        <div class="hamburger-menu">
-          <i class="fas fa-bars"></i>
-        </div>
-      </div>
+        <button class="mobile-menu-close" aria-label="Đóng menu di động">
+            <i class="fas fa-times"></i>
+        </button>
     </div>
-  </header>
-
-  <!-- Cart Modal Overlay -->
-  <div class="cart-modal-overlay"></div>
-
-  <!-- Cart Modal -->
-  <div class="cart-modal">
-    <div class="cart-modal-header">
-      <h3>Giỏ hàng của bạn</h3>
-      <button class="close-cart-modal"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="cart-modal-body">
-      <div class="cart-empty">
-        <i class="fas fa-shopping-cart"></i>
-        <p>Giỏ hàng trống</p>
-      </div>
-      <!-- Cart items will be dynamically added here -->
-    </div>
-    <div class="cart-modal-footer">
-      <button class="view-cart-btn">Xem giỏ hàng</button>
-      <button class="checkout-btn">Thanh toán</button>
-    </div>
-  </div>
-
-  <!-- Mobile Overlay -->
-  <div class="mobile-overlay"></div>
-
-  <!-- Mobile Navigation -->
-  <nav class="mobile-nav">
-    <button class="close-mobile-nav"><i class="fas fa-times"></i></button>
     <ul>
-      <li><a href="index.html">🏠 Trang chủ</a></li>
-      <li class="has-submenu">
-        <a href="#">📱 Products</a>
-        <ul class="submenu">
-          <li><a href="iphone.html">📱 iPhone Series</a></li>
-          <li class="has-submenu">
-            <a href="macbook.html">💻 Mac Devices</a>
-            <ul class="submenu">
-              <li><a href="#">MacBook Air</a></li>
-              <li><a href="#">MacBook Pro</a></li>
-              <li><a href="#">iMac</a></li>
+        <li><a href="/Apple_Shop/index.php" class="<?= basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : '' ?>">Trang chủ</a></li>
+        <li class="has-dropdown">
+            <a href="/Apple_Shop/products/products.php" aria-expanded="false" aria-controls="mobile-products-submenu">Sản Phẩm <i class="fas fa-chevron-down dropdown-indicator"></i></a>
+            <ul class="sub-menu" id="mobile-products-submenu">
+                <li><a href="/Apple_Shop/products/iphone.php">📱 iPhone Models</a></li>
+                <li><a href="/Apple_Shop/products/macbook.php">💻 MacBook & Mac</a></li>
+                <li><a href="/Apple_Shop/products/ipad.php">🎯 iPad Models</a></li>
+                <li><a href="/Apple_Shop/products/watch.php">⌚ Apple Watch</a></li>
+                <li><a href="/Apple_Shop/products/accessories.php">🎧 Accessories</a></li>
             </ul>
-          </li>
-          <li><a href="ipad.html">🎯 iPad Models</a></li>
-          <li><a href="watch.html">⌚ Apple Watch</a></li>
-          <li><a href="accessory.html">🎧 Accessories</a></li>
-        </ul>
-      </li>
-      <li><a href="about.html">ℹ️ Về chúng tôi</a></li>
-      <li><a href="promotion.html">🛠️ Khuyến mại</a></li>
-      <li><a href="news.html">📝 Tin tức</a></li>
-      <li><a href="contact.html">📞 Contact</a></li>
+        </li>
+        <li><a href="/Apple_Shop/promotion.php" class="<?= basename($_SERVER['PHP_SELF']) === 'promotion.php' ? 'active' : '' ?>">🛠️ Khuyến mại</a></li>
+        <li><a href="/Apple_Shop/about.php" class="<?= basename($_SERVER['PHP_SELF']) === 'about.php' ? 'active' : '' ?>">ℹ️ Về chúng tôi</a></li>
+        <li><a href="/Apple_Shop/news.php" class="<?= basename($_SERVER['PHP_SELF']) === 'news.php' ? 'active' : '' ?>">📝 Tin tức</a></li>
+        <li><a href="/Apple_Shop/contact.php" class="<?= basename($_SERVER['PHP_SELF']) === 'contact.php' ? 'active' : '' ?>">📞 Liên hệ</a></li>
+
+        <?php if ($is_user_logged_in): ?>
+            <li class="user-profile-dropdown mobile">
+                <a href="#" class="user-dropdown-toggle" aria-expanded="false" aria-controls="mobile-user-dropdown-menu">
+                    <img src="<?= $user_avatar ?>" alt="Avatar của <?= htmlspecialchars($user_full_name) ?>" class="user-avatar">
+                    <span class="user-name"><?= htmlspecialchars($user_full_name) ?></span>
+                    <i class="fas fa-chevron-down dropdown-indicator"></i>
+                </a>
+                <div class="user-dropdown-menu" id="mobile-user-dropdown-menu">
+                    <a href="/Apple_Shop/profile.php">👤 Thông tin cá nhân</a>
+                    <a href="/Apple_Shop/my_orders.php">📦 Đơn hàng của tôi</a>
+                    <a href="/Apple_Shop/wishlist.php">❤️ Sản phẩm yêu thích</a>
+                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                        <a href="/Apple_Shop/admin/dashboard.php">📊 Bảng điều khiển Admin</a>
+                    <?php endif; ?>
+                    <a href="/Apple_Shop/logout.php">🚪 Đăng xuất</a>
+                </div>
+            </li>
+        <?php else: ?>
+            <li><a href="/Apple_Shop/login.php" class="<?= basename($_SERVER['PHP_SELF']) === 'login.php' ? 'active' : '' ?>">Đăng nhập</a></li>
+            <li><a href="/Apple_Shop/register.php" class="<?= basename($_SERVER['PHP_SELF']) === 'register.php' ? 'active' : '' ?>">Đăng ký</a></li>
+        <?php endif; ?>
+        <li class="mobile-cart-item">
+            <a href="/Apple_Shop/cart.php">🛒 Giỏ hàng <span class="cart-badge badge"><?= $cart_count ?></span></a>
+        </li>
     </ul>
-  </nav>
+</div>
+<div class="mobile-nav-overlay"></div>
+
+<?php
+
+?>
