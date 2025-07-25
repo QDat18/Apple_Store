@@ -1,0 +1,284 @@
+:root {
+    --primary-color: #0071e3;
+    --light-gray: #f5f5f7;
+    --dark-gray: #1d1d1f;
+}
+
+/* Base styles for body and font */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--light-gray); /* Nền nhẹ cho toàn bộ trang */
+    display: flex; /* Để căn giữa chatbot nếu nó là thành phần chính */
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Đảm bảo chiều cao tối thiểu để căn giữa theo chiều dọc */
+}
+
+/* Main Chatbot Container */
+.flex-col { /* Tailwind's flex-col */
+    display: flex;
+    flex-direction: column;
+}
+
+.h-screen { /* Tailwind's h-screen */
+    height: 100vh;
+}
+
+.bg-gray-100 { /* Tailwind's bg-gray-100 */
+    background-color: #f7fafc;
+}
+
+.font-inter { /* Custom font, ensure it's loaded via HTML or @import */
+    font-family: 'Inter', sans-serif;
+}
+
+/* Chat Header */
+.bg-gradient-to-r { /* Tailwind's gradient */
+    background-image: linear-gradient(to right, var(--primary-color), #0056b3);
+}
+
+.from-blue-600 { /* Tailwind's from-blue-600 */
+    --tw-gradient-from: #2563eb;
+    --tw-gradient-to: rgba(37, 99, 235, 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.to-blue-800 { /* Tailwind's to-blue-800 */
+    --tw-gradient-to: #1e40af;
+}
+
+.text-white { /* Tailwind's text-white */
+    color: #fff;
+}
+
+.p-4 { /* Tailwind's p-4 */
+    padding: 1rem; /* 16px */
+}
+
+.shadow-md { /* Tailwind's shadow-md */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.rounded-b-xl { /* Tailwind's rounded-b-xl */
+    border-bottom-left-radius: 0.75rem; /* 12px */
+    border-bottom-right-radius: 0.75rem; /* 12px */
+}
+
+.text-2xl { /* Tailwind's text-2xl */
+    font-size: 1.5rem; /* 24px */
+    line-height: 2rem; /* 32px */
+}
+
+.font-bold { /* Tailwind's font-bold */
+    font-weight: 700;
+}
+
+.text-center { /* Tailwind's text-center */
+    text-align: center;
+}
+
+/* Chat Messages Area */
+.flex-1 { /* Tailwind's flex-1 */
+    flex: 1 1 0%;
+}
+
+.overflow-y-auto { /* Tailwind's overflow-y-auto */
+    overflow-y: auto;
+}
+
+.space-y-4 > :not([hidden]) ~ :not([hidden]) { /* Tailwind's space-y-4 */
+    --tw-space-y-reverse: 0;
+    margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+}
+
+.text-gray-500 { /* Tailwind's text-gray-500 */
+    color: #6b7280;
+}
+
+.mt-10 { /* Tailwind's mt-10 */
+    margin-top: 2.5rem; /* 40px */
+}
+
+/* Individual Message Bubbles */
+.flex { /* Tailwind's flex */
+    display: flex;
+}
+
+.justify-end { /* Tailwind's justify-end */
+    justify-content: flex-end;
+}
+
+.justify-start { /* Tailwind's justify-start */
+    justify-content: flex-start;
+}
+
+.max-w-xs { /* Tailwind's max-w-xs */
+    max-width: 20rem; /* 320px */
+}
+
+.md\:max-w-md { /* Tailwind's md:max-w-md */
+    @media (min-width: 768px) {
+        max-width: 28rem; /* 448px */
+    }
+}
+
+.lg\:max-w-lg { /* Tailwind's lg:max-w-lg */
+    @media (min-width: 1024px) {
+        max-width: 32rem; /* 512px */
+    }
+}
+
+.rounded-lg { /* Tailwind's rounded-lg */
+    border-radius: 0.5rem; /* 8px */
+}
+
+.bg-blue-500 { /* Tailwind's bg-blue-500 */
+    background-color: #3b82f6;
+}
+
+.rounded-br-none { /* Tailwind's rounded-br-none */
+    border-bottom-right-radius: 0;
+}
+
+.bg-white { /* Tailwind's bg-white */
+    background-color: #fff;
+}
+
+.text-gray-800 { /* Tailwind's text-gray-800 */
+    color: #1f2937;
+}
+
+.rounded-bl-none { /* Tailwind's rounded-bl-none */
+    border-bottom-left-radius: 0;
+}
+
+.text-sm { /* Tailwind's text-sm */
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.25rem; /* 20px */
+}
+
+/* Typing Indicator */
+.animate-bounce { /* Tailwind's animate-bounce */
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(-25%);
+        animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+        transform: translateY(0);
+        animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+}
+
+/* Input Area */
+.border-t { /* Tailwind's border-t */
+    border-top-width: 1px;
+}
+
+.border-gray-200 { /* Tailwind's border-gray-200 */
+    border-color: #e5e7eb;
+}
+
+.shadow-lg { /* Tailwind's shadow-lg */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.rounded-t-xl { /* Tailwind's rounded-t-xl */
+    border-top-left-radius: 0.75rem; /* 12px */
+    border-top-right-radius: 0.75rem; /* 12px */
+}
+
+.items-center { /* Tailwind's items-center */
+    align-items: center;
+}
+
+.space-x-3 > :not([hidden]) ~ :not([hidden]) { /* Tailwind's space-x-3 */
+    --tw-space-x-reverse: 0;
+    margin-right: calc(0.75rem * var(--tw-space-x-reverse));
+    margin-left: calc(0.75rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+.flex-1 { /* Tailwind's flex-1 */
+    flex: 1 1 0%;
+}
+
+.border { /* Tailwind's border */
+    border-width: 1px;
+}
+
+.border-gray-300 { /* Tailwind's border-gray-300 */
+    border-color: #d1d5db;
+}
+
+.rounded-full { /* Tailwind's rounded-full */
+    border-radius: 9999px;
+}
+
+.focus\:outline-none:focus { /* Tailwind's focus:outline-none */
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+}
+
+.focus\:ring-2:focus { /* Tailwind's focus:ring-2 */
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.focus\:ring-blue-500:focus { /* Tailwind's focus:ring-blue-500 */
+    --tw-ring-color: #3b82f6;
+}
+
+.transition-all { /* Tailwind's transition-all */
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.duration-200 { /* Tailwind's duration-200 */
+    transition-duration: 200ms;
+}
+
+.hover\:bg-blue-700:hover { /* Tailwind's hover:bg-blue-700 */
+    background-color: #1d4ed8;
+}
+
+.focus\:ring-offset-2:focus { /* Tailwind's focus:ring-offset-2 */
+    --tw-ring-offset-width: 2px;
+}
+
+.disabled\:opacity-50:disabled { /* Tailwind's disabled:opacity-50 */
+    opacity: 0.5;
+}
+
+.disabled\:cursor-not-allowed:disabled { /* Tailwind's disabled:cursor-not-allowed */
+    cursor: not-allowed;
+}
+
+/* SVG Icon Styling (for send button) */
+.h-6 { /* Tailwind's h-6 */
+    height: 1.5rem; /* 24px */
+}
+
+.w-6 { /* Tailwind's w-6 */
+    width: 1.5rem; /* 24px */
+}
+
+.stroke-current { /* Tailwind's stroke-current */
+    stroke: currentColor;
+}
+
+.stroke-2 { /* Tailwind's stroke-2 */
+    stroke-width: 2;
+}
+
+.text-sm { /* Tailwind's text-sm */
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.25rem; /* 20px */
+}

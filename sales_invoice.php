@@ -2,7 +2,91 @@
 session_start();
 require_once 'config/db.php';
 
+// Lấy order_code từ GET hoặc session
+$order_code = isset($_GET['order_code']) ? trim($_GET['order_code']) : '';
+$order_data = isset($_SESSION['order_data']) ? $_SESSION['order_data'] : null;
+
+// Nếu không có session hoặc order_code không khớp, truy vấn lại DB
+if (!$order_data || ($order_code && $order_data['order_code'] !== $order_code)) {
+    if ($order_code && isset($_SESSION['user_id'])) {
+        $stmt = $conn->prepare("
+            SELECT
+                o.order_code, o.full_name, o.email, o.phone_number AS phone, 
+                o.shipping_address AS address, o.total_amount AS total, o.payment_method, o.notes
+            FROM orders o
+            WHERE o.order_code = ? AND o.user_id = ?
+        ");
+        if ($stmt) {
+            $stmt->bind_param("si", $order_code, $_SESSION['user_id']);
+            if ($stmt->execute()) {
+                $result = $stmt->get_result();
+                $db_order_data = $result->fetch_assoc();
+                $stmt->close();
+                if ($db_order_data) {
+                    $order_data = [
+                        'order_code' => $db_order_data['order_code'],
+                        'full_name' => $db_order_data['full_name'],
+                        'email' => $db_order_data['email'],
+                        'phone' => $db_order_data['phone'],
+                        'address' => $db_order_data['address'],
+                        'ward' => '',
+                        'district' => '',
+                        'city' => '',
+                        'payment_method' => $db_order_data['payment_method'],
+                        'notes' => $db_order_data['notes'],
+                        'total' => $db_order_data['total'],
+                        'items' => []
+                    ];
+                    // Lấy danh sách sản phẩm đã đặt hàng
+                    $stmt_items = $conn->prepare("
+                        SELECT
+                            oi.quantity, oi.price, pv.id AS variant_id, p.product_name AS name, 
+                            pv.variant_image AS image,
+                            (SELECT vav.value FROM variant_attribute_values vav 
+                             JOIN product_variant_attribute_links pval ON vav.id = pval.attribute_value_id 
+                             WHERE pval.variant_id = pv.id AND vav.attribute_id = 2) AS storage,
+                            (SELECT vav.value FROM variant_attribute_values vav 
+                             JOIN product_variant_attribute_links pval ON vav.id = pval.attribute_value_id 
+                             WHERE pval.variant_id = pv.id AND vav.attribute_id = 1) AS color
+                        FROM order_items oi
+                        JOIN product_variants pv ON oi.variant_id = pv.id
+                        JOIN products p ON pv.product_id = p.id
+                        WHERE oi.order_id = (SELECT id FROM orders WHERE order_code = ?)
+                    ");
+                    if ($stmt_items) {
+                        $stmt_items->bind_param("s", $order_code);
+                        if ($stmt_items->execute()) {
+                            $items_result = $stmt_items->get_result();
+                            while ($item_row = $items_result->fetch_assoc()) {
+                                $order_data['items'][] = $item_row;
+                            }
+                        }
+                        $stmt_items->close();
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Nếu vẫn không có order_data, chuyển về trang chủ
+if (!$order_data) {
+    header('Location: index.php');
+    exit;
+}
+
+// Kiểm tra cấu trúc order_data
+$required_fields = ['order_code', 'full_name', 'email', 'phone', 'address', 'ward', 'district', 'city', 'payment_method', 'total', 'items'];
+foreach ($required_fields as $field) {
+    if (!isset($order_data[$field])) {
+        error_log("Missing field $field in order_data");
+        header('Location: index.php');
+        exit;
+    }
+}
+
 function removeDiacritics($text) {
+    if (empty($text)) return $text;
     $unicode = [
         'a' => '/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/',
         'e' => '/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/',
@@ -25,45 +109,39 @@ function removeDiacritics($text) {
     return $text;
 }
 
-$order_data = isset($_SESSION['order_data']) ? $_SESSION['order_data'] : null;
-
-if (!$order_data) {
-    header('Location: index.php');
-    exit;
-}
-
-// **IMPORTANT:** Apply diacritic removal to all relevant fields *before* passing to JS
-// The web page HTML still shows the original data, but the JS will use this processed data.
+// Chuẩn bị dữ liệu cho PDF (xóa dấu nếu cần)
 $order_data_for_pdf = $order_data;
-$order_data_for_pdf['full_name'] = removeDiacritics($order_data_for_pdf['full_name']);
-$order_data_for_pdf['address'] = removeDiacritics($order_data_for_pdf['address']);
-$order_data_for_pdf['ward'] = removeDiacritics($order_data_for_pdf['ward']);
-$order_data_for_pdf['district'] = removeDiacritics($order_data_for_pdf['district']);
-$order_data_for_pdf['city'] = removeDiacritics($order_data_for_pdf['city']);
-$order_data_for_pdf['notes'] = $order_data_for_pdf['notes'] ? removeDiacritics($order_data_for_pdf['notes']) : '';
-
-// Process items for PDF as well
+$order_data_for_pdf['full_name'] = removeDiacritics($order_data['full_name']);
+$order_data_for_pdf['address'] = removeDiacritics($order_data['address']);
+$order_data_for_pdf['ward'] = removeDiacritics($order_data['ward']);
+$order_data_for_pdf['district'] = removeDiacritics($order_data['district']);
+$order_data_for_pdf['city'] = removeDiacritics($order_data['city']);
+$order_data_for_pdf['notes'] = $order_data['notes'] ? removeDiacritics($order_data['notes']) : '';
 foreach ($order_data_for_pdf['items'] as &$item) {
     $item['name'] = removeDiacritics($item['name']);
     $item['storage'] = removeDiacritics($item['storage']);
     $item['color'] = removeDiacritics($item['color']);
+    $item['price'] = (float)$item['price']; // Đảm bảo price là số
 }
-unset($item); // Break the reference with the last element
+unset($item);
 
-// Format total to 2 decimal places for consistent display
-// This applies to the original $order_data for HTML display
-$order_data['total'] = number_format($order_data['total'], 2);
-// And also to the PDF data
-$order_data_for_pdf['total'] = number_format($order_data_for_pdf['total'], 2);
-
+// Tính lại tổng tiền từ danh sách sản phẩm (nếu có)
+$overall_subtotal = 0;
+foreach ($order_data['items'] as $item) {
+    $item_price = isset($item['price']) ? (float)$item['price'] : 0;
+    $subtotal = $item_price * (isset($item['quantity']) ? (int)$item['quantity'] : 1);
+    $overall_subtotal += $subtotal;
+}
+$order_data['total'] = number_format($overall_subtotal, 2);
+$order_data_for_pdf['total'] = number_format($overall_subtotal, 2);
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sales Invoice - Anh Em Rot Store</title>
+    <title>Hóa đơn bán hàng - Anh Em Rọt Store</title>
     <link rel="icon" href="assets/logo/logo.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="css/header.css">
@@ -178,7 +256,7 @@ $order_data_for_pdf['total'] = number_format($order_data_for_pdf['total'], 2);
             margin-top: 1.5rem;
             box-shadow: var(--shadow-sm);
             border-radius: var(--border-radius);
-            overflow: hidden; /* Ensures rounded corners apply to content */
+            overflow: hidden;
         }
 
         .items-table th,
@@ -329,7 +407,7 @@ $order_data_for_pdf['total'] = number_format($order_data_for_pdf['total'], 2);
 
             .download-btn,
             .back-btn {
-                width: calc(100% - 1rem); /* Account for margin */
+                width: calc(100% - 1rem);
                 margin-bottom: 0.75rem;
             }
         }
@@ -340,9 +418,9 @@ $order_data_for_pdf['total'] = number_format($order_data_for_pdf['total'], 2);
 
     <div class="container">
         <div class="invoice-header">
-            <img src="assets/logo/logo.png" alt="Anh Em Rot Store Logo" class="invoice-logo">
+            <img src="assets/logo/logo.png" alt="Anh Em Rọt Store Logo" class="invoice-logo" onerror="this.src='assets/products/default.png'">
             <h1 class="invoice-title">Hóa đơn bán hàng</h1>
-            <p class="invoice-subtitle">Anh Em Rot Store</p>
+            <p class="invoice-subtitle">Anh Em Rọt Store</p>
             <p class="invoice-date">Ngày xuất hóa đơn: <?= date('d/m/Y, H:i A T') ?></p>
         </div>
 
@@ -398,7 +476,7 @@ $order_data_for_pdf['total'] = number_format($order_data_for_pdf['total'], 2);
                     <?php
                     $overall_subtotal = 0;
                     foreach ($order_data['items'] as $item):
-                        $item_price = in_array($item['product_id'], [1, 2]) ? $item['price'] * 0.9 : $item['price'];
+                        $item_price = in_array($item['product_id'], [1, 2]) ? (float)$item['price'] * 0.9 : (float)$item['price'];
                         $subtotal = $item_price * $item['quantity'];
                         $overall_subtotal += $subtotal;
                     ?>
@@ -415,27 +493,28 @@ $order_data_for_pdf['total'] = number_format($order_data_for_pdf['total'], 2);
 
             <div class="summary-block">
                 <div class="summary-row">
-                    <span class="summary-label">Tổng phụ:</span>
-                    <span class="summary-value">$<?= number_format($overall_subtotal, 2) ?></span>
+                    <span class="summary-label">Subtotal:</span>
+                    <span class="summary-value">VND<?= number_format($overall_subtotal, 2) ?></span>
                 </div>
                 <div class="summary-row">
-                    <span class="summary-label">Phí vận chuyển:</span>
-                    <span class="summary-value">$0.00</span> </div>
+                    <span class="summary-label">Shipping Fee:</span>
+                    <span class="summary-value">0.00 VND</span>
+                </div>
                 <div class="summary-total">
-                    <span>Tổng tiền:</span>
+                    <span>Total:</span>
                     <span>$<?= htmlspecialchars($order_data['total']) ?></span>
                 </div>
             </div>
         </div>
 
         <div class="actions">
-            <button class="download-btn" onclick="downloadInvoice()"><i class="fas fa-file-pdf"></i> Tải hóa đơn PDF</button>
-            <a href="index.php" class="back-btn"><i class="fas fa-arrow-left"></i> Quay lại trang chủ</a>
+            <button class="download-btn" onclick="downloadInvoice()"><i class="fas fa-file-pdf"></i> Tải và in PDF</button>
+            <a href="index.php" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Home</a>
         </div>
 
         <div class="invoice-footer">
-            <p>Cảm ơn quý khách đã mua hàng tại Anh Em Rot Store! Chúng tôi rất hân hạnh được phục vụ.</p>
-            <p>Vui lòng giữ hóa đơn này để tham khảo và bảo hành.</p>
+            <p>Thank you for shopping at Anh Em Rọt Store! We are happy to serve you.</p>
+            <p>Please keep this invoice for reference and warranty.</p>
         </div>
     </div>
 
@@ -445,79 +524,77 @@ $order_data_for_pdf['total'] = number_format($order_data_for_pdf['total'], 2);
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script>
         const { jsPDF } = window.jspdf;
-        // Use the diacritic-removed data for PDF generation
-        const orderDataForPdf = <?php echo json_encode($order_data_for_pdf); ?>;
+        const orderDataForPdf = <?php echo json_encode($order_data_for_pdf, JSON_NUMERIC_CHECK); ?>;
 
         function downloadInvoice() {
             const doc = new jsPDF();
 
             // Header Section
             doc.setFontSize(22);
-            doc.setTextColor(45, 55, 72); // --secondary-color in RGB
+            doc.setTextColor(45, 55, 72);
             doc.text("SALES INVOICE", doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' });
 
             doc.setFontSize(10);
-            doc.setTextColor(113, 128, 147); // --text-secondary in RGB
+            doc.setTextColor(113, 128, 147);
             doc.text("Anh Em Rot Store", doc.internal.pageSize.getWidth() / 2, 32, { align: 'center' });
-            doc.text("Address: 123 ABC Street, XYZ District, Ha Noi City", doc.internal.pageSize.getWidth() / 2, 38, { align: 'center' });
+            doc.text("Address: 12 Chua Boc, Ha Noi", doc.internal.pageSize.getWidth() / 2, 38, { align: 'center' });
             doc.text("Phone: 0123 456 789 | Email: info@anhemrot.com", doc.internal.pageSize.getWidth() / 2, 44, { align: 'center' });
 
-            doc.addImage('assets/logo/logo.png', 'PNG', 15, 15, 30, 30); // Logo adjusted for better placement
+            // Kiểm tra logo
+            try {
+                doc.addImage('assets/logo/logo.png', 'PNG', 15, 15, 30, 30);
+            } catch (e) {
+                console.warn('Không thể tải logo:', e.message);
+            }
 
-            doc.setDrawColor(226, 232, 240); // --border-color
-            doc.line(15, 50, doc.internal.pageSize.getWidth() - 15, 50); // Line separator
+            doc.setDrawColor(226, 232, 240);
+            doc.line(15, 50, doc.internal.pageSize.getWidth() - 15, 50);
 
             // Customer Information Section
             doc.setFontSize(14);
             doc.setTextColor(45, 55, 72);
             doc.text("CUSTOMER INFORMATION", 15, 65);
             doc.setFontSize(10);
-            doc.setTextColor(74, 85, 104); // Slightly darker for details
+            doc.setTextColor(74, 85, 104);
 
             let currentY = 75;
             doc.text(`Order Code: ${orderDataForPdf.order_code}`, 15, currentY);
             currentY += 7;
-            doc.text(`Issue Date: ${new Date().toLocaleString('en-US', {
+            doc.text(`Date: ${new Date().toLocaleString('vi-VN', {
                 day: '2-digit', month: '2-digit', year: 'numeric',
                 hour: '2-digit', minute: '2-digit', hour12: true,
                 timeZone: 'Asia/Ho_Chi_Minh'
-            }).replace(',', '')}`, 15, currentY); // English date format
+            })}`, 15, currentY);
             currentY += 7;
             doc.text(`Full Name: ${orderDataForPdf.full_name}`, 15, currentY);
             currentY += 7;
-            doc.text(`Phone Number: ${orderDataForPdf.phone}`, 15, currentY);
+            doc.text(`Phone: ${orderDataForPdf.phone}`, 15, currentY);
             currentY += 7;
             doc.text(`Email: ${orderDataForPdf.email}`, 15, currentY);
             currentY += 7;
             doc.text(`Address: ${orderDataForPdf.address}, ${orderDataForPdf.ward}, ${orderDataForPdf.district}, ${orderDataForPdf.city}`, 15, currentY);
             currentY += 7;
-            let paymentMethodText;
-            if (orderDataForPdf.payment_method === 'cod') {
-                paymentMethodText = 'Cash on Delivery (COD)';
-            } else if (orderDataForPdf.payment_method === 'bank') {
-                paymentMethodText = 'Bank Transfer';
-            } else {
-                paymentMethodText = 'MoMo Wallet';
-            }
+            const paymentMethodText = orderDataForPdf.payment_method === 'cod' ? 'Thanh toan khi nhan hang (COD)' :
+                                     orderDataForPdf.payment_method === 'bank' ? 'Chuyen khoan ngan hang' : 'Vi MoMo';
             doc.text(`Payment Method: ${paymentMethodText}`, 15, currentY);
             if (orderDataForPdf.notes) {
                 currentY += 7;
                 doc.text(`Notes: ${orderDataForPdf.notes}`, 15, currentY);
             }
 
-            currentY += 15; // Space before items table
+            currentY += 15;
 
             // Item Details Table
-            const tableHeaders = [['Product', 'Storage/Color', 'Quantity', 'Price (USD)', 'Total (USD)']];
+            const tableHeaders = [['Product', 'Storage/Color', 'Quantity', 'Price (VND)', 'Total (VND)']];
             const tableData = orderDataForPdf.items.map((item) => {
-                const itemPrice = item.product_id === 1 || item.product_id === 2 ? item.price * 0.9 : item.price;
+                const itemPrice = in_array(item.product_id, [1, 2]) ? Number(item.price) * 0.9 : Number(item.price);
                 const subtotal = itemPrice * item.quantity;
                 return [
-                    `${item.name}`,
+                    item.name,
                     `${item.storage} - ${item.color}`,
                     item.quantity,
-                    `$${Number(itemPrice).toFixed(2)}`,
-                    `$${Number(subtotal).toFixed(2)}`
+                    `$${itemPrice.toFixed(2)}`,
+                    `$${subtotal.toFixed(2)}`
                 ];
             });
 
@@ -545,25 +622,23 @@ $order_data_for_pdf['total'] = number_format($order_data_for_pdf['total'], 2);
                     3: { halign: 'right' },
                     4: { halign: 'right' }
                 },
-                margin: { horizontal: 15 },
-                didDrawPage: function(data) {
-                    // Footer on each page if needed
-                }
+                margin: { horizontal: 15 }
             });
 
-            currentY = doc.lastAutoTable.finalY + 10; // Update Y position after table
+            currentY = doc.lastAutoTable.finalY + 10;
 
-            // Summary (Total) Section
+            // Summary Section
             doc.setFontSize(12);
             doc.setTextColor(45, 55, 72);
             doc.text(`Subtotal:`, 150, currentY, { align: 'right' });
-            doc.text(`$${Number(orderDataForPdf.items.reduce((sum, item) => sum + (in_array(item.product_id, [1, 2]) ? item.price * 0.9 : item.price) * item.quantity, 0)).toFixed(2)}`, doc.internal.pageSize.getWidth() - 15, currentY, { align: 'right' });
+            const subtotal = orderDataForPdf.items.reduce((sum, item) => sum + (in_array(item.product_id, [1, 2]) ? Number(item.price) * 0.9 : Number(item.price)) * item.quantity, 0);
+            doc.text(`$${subtotal.toFixed(2)}`, doc.internal.pageSize.getWidth() - 15, currentY, { align: 'right' });
             currentY += 7;
             doc.text(`Shipping Fee:`, 150, currentY, { align: 'right' });
             doc.text(`$0.00`, doc.internal.pageSize.getWidth() - 15, currentY, { align: 'right' });
             currentY += 10;
             doc.setFontSize(16);
-            doc.setTextColor(72, 187, 120); // --success-color
+            doc.setTextColor(72, 187, 120);
             doc.text(`TOTAL:`, 150, currentY, { align: 'right' });
             doc.text(`$${orderDataForPdf.total}`, doc.internal.pageSize.getWidth() - 15, currentY, { align: 'right' });
 
@@ -571,19 +646,17 @@ $order_data_for_pdf['total'] = number_format($order_data_for_pdf['total'], 2);
             currentY += 20;
             doc.setFontSize(10);
             doc.setTextColor(113, 128, 147);
-            doc.text("Thank you for your purchase from Anh Em Rot Store!", doc.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+            doc.text("Thank you for shopping at Anh Em Rot Store!", doc.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
             currentY += 6;
-            doc.text("Please keep this invoice for your reference and warranty.", doc.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+            doc.text("Please keep this invoice for reference and warranty.", doc.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
             currentY += 10;
             doc.text(`Order Code: ${orderDataForPdf.order_code}`, doc.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
 
-
-            doc.save(`sales-invoice-${orderDataForPdf.order_code}.pdf`);
+            doc.save(`hoadonban-${orderDataForPdf.order_code}.pdf`);
         }
 
-        // Helper function for in_array in JS
         function in_array(needle, haystack) {
-            return haystack.indexOf(needle) !== -1;
+            return haystack.includes(Number(needle));
         }
     </script>
 </body>

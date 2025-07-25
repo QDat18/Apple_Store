@@ -10,25 +10,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$email || !$password) {
         $errors[] = "Vui lòng nhập đầy đủ thông tin.";
     } else {
-        $stmt = $conn->prepare("SELECT id, full_name, password, role, is_verified FROM users WHERE email = ?");
+        $stmt = $conn->prepare("SELECT id, password, role, is_verified, is_updated FROM users WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $stmt->store_result();
 
         if ($stmt->num_rows === 1) {
-            $stmt->bind_result($id, $full_name, $hashed_password, $role, $is_verified);
+            $stmt->bind_result($id, $hashedPass, $role, $is_verified, $is_updated);
             $stmt->fetch();
 
-            if (password_verify($password, $hashed_password)) {
+            if (password_verify($password, $hashedPass)) {
                 if ($is_verified == 0) {
-                    $errors[] = "Tài khoản chưa được xác thực email. Vui lòng kiểm tra email hoặc <a href='send_verification_email.php?resend=1&email=" . urlencode($email) . "'>gửi lại email xác thực</a>.";
+                    $errors[] = "Tài khoản chưa được xác thực email. Vui lòng kiểm tra email và xác thực tài khoản.";
                 } else {
+                    // Lấy thông tin từ user_detail
+                    $detail_stmt = $conn->prepare("SELECT first_name, last_name FROM user_detail WHERE user_id = ?");
+                    $detail_stmt->bind_param("i", $id);
+                    $detail_stmt->execute();
+                    $detail_stmt->bind_result($first_name, $last_name);
+                    $detail_stmt->fetch();
+                    $detail_stmt->close();
+
                     $_SESSION['user_id'] = $id;
-                    $_SESSION['full_name'] = $full_name;
                     $_SESSION['email'] = $email;
                     $_SESSION['role'] = $role;
+                    $_SESSION['first_name'] = $first_name ?? '';
+                    $_SESSION['last_name'] = $last_name ?? '';
 
-                    if (empty($full_name)) {
+                    if ($is_updated == 0) {
                         header("Location: update_profile.php?first_login=1");
                     } else {
                         header("Location: index.php");
@@ -48,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -57,9 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/auth.css">
 </head>
-<body>
-    <?php include 'includes/header.php'; ?>
 
+<body>
+    <?php include 'includes/header.php' ?>
     <main class="container">
         <div class="auth-container">
             <div class="auth-header">
@@ -70,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if (!empty($errors)): ?>
                 <div class="alert alert-danger" style="color: red; margin: 10px 0;">
                     <?php foreach ($errors as $e): ?>
-                        <p><?= $e ?></p>
+                        <p><?= htmlspecialchars($e) ?></p>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
@@ -78,30 +88,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form class="auth-form" method="POST">
                 <div class="form-group">
                     <label for="email" class="form-label">Email</label>
-                    <input type="email" name="email" id="email" class="form-input" 
-                           placeholder="Nhập email của bạn" 
-                           value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" 
-                           required>
+                    <input type="email" name="email" id="email" class="form-input" placeholder="Nhập email của bạn"
+                        value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required autocomplete="email">
                 </div>
                 <div class="form-group">
                     <label for="password" class="form-label">Mật khẩu</label>
-                    <input type="password" name="password" id="password" class="form-input" 
-                           placeholder="Nhập mật khẩu" required>
+                    <input type="password" name="password" id="password" class="form-input" placeholder="Nhập mật khẩu"
+                        required autocomplete="current-password">
                 </div>
-                <div class="form-checkbox">
-                    <input type="checkbox" id="remember-me">
-                    <label for="remember-me">Ghi nhớ tài khoản</label>
-                    <a href="forgot_password.php" class="form-link">Quên mật khẩu?</a>
+                <div class="form-checkbox" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <input type="checkbox" id="remember-me">
+                        <label for="remember-me">Ghi nhớ tài khoản</label>
+                    </div>
+                    <a href="forgot_password.php" class="form-link"
+                        style="font-size: 14px; text-decoration: none; color: #007bff;">Quên mật khẩu?</a>
                 </div>
                 <button type="submit" class="auth-button">Đăng nhập</button>
             </form>
-
             <div class="auth-footer">
-                <p>Chưa có tài khoản? <a href="register.php" class="form-link">Đăng ký ngay</a></p>
+                <span>Chưa có tài khoản? </span>
+                <a href="register.php" class="form-link">Đăng ký ngay</a>
             </div>
         </div>
     </main>
-
-    <?php include 'includes/footer.php'; ?>
+    <?php include 'includes/footer.php' ?>
+    <script src="scripts/header.js"></script>
 </body>
+
 </html>

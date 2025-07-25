@@ -5,16 +5,58 @@ require_once 'config/db.php';
 // Kiểm tra quyền admin
 $is_admin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 
+// Helper function to generate slug
+function generateSlug($string) {
+    $string = trim($string);
+    $string = str_replace(['á','à','ả','ạ','ã','ă','ắ','ằ','ẳ','ặ','ẵ','â','ấ','ầ','ẩ','ậ','ẫ'], 'a', $string);
+    $string = str_replace(['Á','À','Ả','Ạ','Ã','Ă','Ắ','Ằ','Ẳ','Ặ','Ẵ','Â','Ấ','Ầ','Ẩ','Ậ','Ẫ'], 'A', $string);
+    $string = str_replace(['é','è','ẻ','ẹ','ẽ','ê','ế','ề','ể','ệ','ễ'], 'e', $string);
+    $string = str_replace(['É','È','Ẻ','Ẹ','Ẽ','Ê','Ề','Ể','Ệ','Ễ'], 'E', $string);
+    $string = str_replace(['í','ì','ỉ','ị','ĩ'], 'i', $string);
+    $string = str_replace(['Í','Ì','Ỉ','Ị','Ĩ'], 'I', $string);
+    $string = str_replace(['ó','ò','ỏ','ọ','õ','ô','ố','ồ','ổ','ộ','ỗ','ơ','ớ','ờ','ở','ợ','ỡ'], 'o', $string);
+    $string = str_replace(['Ó','Ò','Ỏ','Ọ','Õ','Ô','Ố','Ồ','Ổ','Ộ','Ỗ','Ơ','Ớ','Ờ','Ở','Ợ','Ỡ'], 'O', $string);
+    $string = str_replace(['ú','ù','ủ','ụ','ũ','ư','ứ','ừ','ử','ự','ữ'], 'u', $string);
+    $string = str_replace(['Ú','Ù','Ủ','Ụ','Ũ','Ư','Ứ','Ừ','Ử','Ự','Ữ'], 'U', $string);
+    $string = str_replace(['ý','ỳ','ỷ','ỵ','ỹ'], 'y', $string);
+    $string = str_replace(['Ý','Ỳ','Ỷ','Ỵ','Ỹ'], 'Y', $string);
+    $string = str_replace(['đ'], 'd', $string);
+    $string = str_replace(['Đ'], 'D', $string);
+    $string = preg_replace('/[^a-zA-Z0-9 -]/', '', $string);
+    $string = str_replace(' ', '-', $string);
+    $string = preg_replace('/-+/', '-', $string);
+    $string = strtolower($string);
+    return $string;
+}
+
 // Xử lý thêm tin tức
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $is_admin) {
     $title = $_POST['title'];
     $content = $_POST['content'];
-    $category = $_POST['category'];
-    $created_date = $_POST['created_date'];
-    $image_url = $_POST['image_url'];
+    // Removed $category as it's not in DB schema
+    $created_at = $_POST['created_date']; // Map created_date from form to created_at in DB
+    $image = $_POST['image_url']; // Renamed to image
 
-    $stmt = $conn->prepare("INSERT INTO news (title, content, category, created_date, image_url) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssss", $title, $content, $category, $created_date, $image_url);
+    // Generate slug
+    $slug = generateSlug($title);
+    $original_slug = $slug;
+    $counter = 1;
+    // Check for slug uniqueness
+    while (true) {
+        $check_slug_stmt = $conn->prepare("SELECT COUNT(*) FROM news WHERE slug = ?");
+        $check_slug_stmt->bind_param("s", $slug);
+        $check_slug_stmt->execute();
+        $slug_count = $check_slug_stmt->get_result()->fetch_row()[0];
+        $check_slug_stmt->close();
+
+        if ($slug_count == 0) {
+            break; // Slug is unique
+        }
+        $slug = $original_slug . '-' . $counter++;
+    }
+
+    $stmt = $conn->prepare("INSERT INTO news (title, slug, content, image, created_at) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssss", $title, $slug, $content, $image, $created_at);
     $stmt->execute();
     $stmt->close();
     header("Location: news.php");
@@ -29,7 +71,8 @@ $offset = ($page - 1) * $items_per_page;
 $total_items = $conn->query("SELECT COUNT(*) FROM news")->fetch_row()[0];
 $total_pages = ceil($total_items / $items_per_page);
 
-$result = $conn->query("SELECT * FROM news ORDER BY created_date DESC LIMIT $offset, $items_per_page");
+// Fetch news, order by created_at
+$result = $conn->query("SELECT * FROM news ORDER BY created_at DESC LIMIT $offset, $items_per_page");
 ?>
 
 <!DOCTYPE html>
@@ -103,8 +146,7 @@ $result = $conn->query("SELECT * FROM news ORDER BY created_date DESC LIMIT $off
             color: var(--text-primary);
         }
 
-        .filter-section select,
-        .filter-section input {
+        .filter-section select, .filter-section input {
             width: 100%;
             padding: 0.5rem;
             margin-bottom: 1rem;
@@ -114,8 +156,7 @@ $result = $conn->query("SELECT * FROM news ORDER BY created_date DESC LIMIT $off
             transition: var(--transition);
         }
 
-        .filter-section select:focus,
-        .filter-section input:focus {
+        .filter-section select:focus, .filter-section input:focus {
             outline: none;
             border-color: var(--accent-color);
             box-shadow: var(--shadow-sm);
@@ -151,105 +192,130 @@ $result = $conn->query("SELECT * FROM news ORDER BY created_date DESC LIMIT $off
             margin-right: 1rem;
         }
 
-        .news-content h3 {
-            color: var(--info-color);
+        .news-content {
+            flex-grow: 1;
+        }
+
+        .news-content h4 {
+            margin-top: 0;
             margin-bottom: 0.5rem;
             font-size: 1.1rem;
+            color: var(--text-primary);
         }
 
         .news-content p {
+            font-size: 0.9rem;
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .detail-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            padding: 0.4rem 0.8rem;
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: var(--border-radius);
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: var(--transition);
+        .news-date {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
         }
 
-        .detail-btn:hover {
-            background: var(--success-color);
+        .read-more {
+            display: inline-block;
+            margin-top: 0.5rem;
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .read-more:hover {
+            text-decoration: underline;
         }
 
         .admin-form {
-            margin-top: 1rem;
-            display: <?php echo $is_admin ? 'block' : 'none'; ?>;
+            background: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            margin-top: 2rem;
+        }
+
+        .admin-form h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
         }
 
         .admin-form input,
-        .admin-form select,
-        .admin-form textarea {
-            width: 100%;
+        .admin-form textarea,
+        .admin-form select {
+            width: calc(100% - 1rem); /* Adjusted for padding */
             padding: 0.5rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 1rem;
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
+            font-size: 1rem;
         }
 
         .admin-form button {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            background: var(--accent-color);
+            background-color: var(--primary-color);
             color: white;
+            padding: 0.75rem 1.5rem;
             border: none;
             border-radius: var(--border-radius);
-            font-size: 1rem;
             cursor: pointer;
+            font-size: 1rem;
             transition: var(--transition);
         }
 
         .admin-form button:hover {
-            background: var(--success-color);
+            opacity: 0.9;
         }
 
         .pagination {
-            margin-top: 1rem;
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            margin-top: 2rem;
+            gap: 0.5rem;
         }
 
         .pagination a {
+            display: block;
             padding: 0.5rem 1rem;
-            margin: 0 0.2rem;
-            background: var(--card-background);
-            color: var(--accent-color);
-            text-decoration: none;
+            border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
+            text-decoration: none;
+            color: var(--text-primary);
             transition: var(--transition);
         }
 
+        .pagination a.active,
         .pagination a:hover {
-            background: var(--accent-color);
+            background-color: var(--accent-color);
             color: white;
-        }
-
-        .pagination .active {
-            background: var(--accent-color);
-            color: white;
+            border-color: var(--accent-color);
         }
 
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
-                padding: 1rem;
             }
 
             .filter-section, .news-list {
                 width: 100%;
             }
 
-            .news-title {
-                font-size: 1.5rem;
+            .news-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .news-image {
+                width: 100%;
+                height: auto;
+                margin-right: 0;
+                margin-bottom: 1rem;
             }
         }
     </style>
@@ -259,44 +325,41 @@ $result = $conn->query("SELECT * FROM news ORDER BY created_date DESC LIMIT $off
 
     <div class="container">
         <div class="filter-section">
-            <h3>Lọc tin tức</h3>
-            <select id="category">
-                <option value="">Tất cả danh mục</option>
-                <option value="sản phẩm mới">Sản phẩm mới</option>
-                <option value="sự kiện">Sự kiện</option>
-                <option value="chính sách">Chính sách</option>
-            </select>
-            <input type="date" id="date">
+            <h3>Bộ lọc</h3>
+            <label for="date">Ngày đăng:</label>
+            <input type="date" id="date" onchange="filterNews()">
         </div>
         <div class="news-list">
-            <div class="news-header">
-                <h1 class="news-title">Tin tức</h1>
-            </div>
-            <?php while ($row = $result->fetch_assoc()): ?>
-                <div class="news-item" data-category="<?php echo strtolower($row['category']); ?>" data-date="<?php echo $row['created_date']; ?>">
-                    <img src="<?php echo htmlspecialchars($row['image_url']); ?>" alt="<?php echo htmlspecialchars($row['title']); ?>" class="news-image">
-                    <div class="news-content">
-                        <h3><?php echo htmlspecialchars($row['title']); ?></h3>
-                        <p><?php echo htmlspecialchars($row['content']); ?></p>
-                        <a href="news_detail.php?id=<?php echo $row['id']; ?>" class="detail-btn"><i class="fas fa-info-circle"></i> Chi tiết</a>
-                    </div>
-                </div>
-            <?php endwhile; ?>
+            <h2 class="news-header">Tin tức mới nhất</h2>
+            <?php
+            if ($result->num_rows === 0) {
+                echo '<p>Không có tin tức nào.</p>';
+            } else {
+                while ($row = $result->fetch_assoc()) {
+                    echo '<div class="news-item" data-date="'.htmlspecialchars(date('Y-m-d', strtotime($row['created_at']))).'">';
+                    echo '<img src="'.htmlspecialchars($row['image']).'" alt="'.htmlspecialchars($row['title']).'" class="news-image">';
+                    echo '<div class="news-content">';
+                    echo '<h4>'.htmlspecialchars($row['title']).'</h4>';
+                    echo '<p>'.htmlspecialchars(mb_substr($row['content'], 0, 150, 'UTF-8')).'...</p>';
+                    echo '<span class="news-date">Ngày đăng: '.htmlspecialchars(date('d/m/Y', strtotime($row['created_at']))).'</span>';
+                    echo '<a href="news_detail.php?slug='.htmlspecialchars($row['slug']).'" class="read-more">Đọc thêm <i class="fas fa-arrow-right"></i></a>';
+                    echo '</div></div>';
+                }
+            }
+            ?>
+            <?php if ($is_admin): ?>
             <div class="admin-form">
-                <h3>Thêm tin tức (Chỉ admin)</h3>
-                <form method="post">
-                    <input type="text" name="title" placeholder="Tiêu đề" required>
-                    <textarea name="content" placeholder="Nội dung" required></textarea>
-                    <select name="category">
-                        <option value="sản phẩm mới">Sản phẩm mới</option>
-                        <option value="sự kiện">Sự kiện</option>
-                        <option value="chính sách">Chính sách</option>
-                    </select>
-                    <input type="date" name="created_date" required>
+                <h3>Thêm tin tức mới</h3>
+                <form action="news.php" method="POST">
+                    <input type="text" name="title" placeholder="Tiêu đề tin tức" required>
+                    <textarea name="content" placeholder="Nội dung tin tức" rows="5" required></textarea>
+                    <label for="admin-created-date">Ngày đăng:</label>
+                    <input type="date" name="created_date" id="admin-created-date" required>
                     <input type="text" name="image_url" placeholder="Đường dẫn ảnh" required>
                     <button type="submit"><i class="fas fa-plus"></i> Thêm tin tức</button>
                 </form>
             </div>
+            <?php endif; ?>
             <div class="pagination">
                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                     <a href="?page=<?php echo $i; ?>" class="<?php echo $page === $i ? 'active' : ''; ?>"><?php echo $i; ?></a>
@@ -308,22 +371,18 @@ $result = $conn->query("SELECT * FROM news ORDER BY created_date DESC LIMIT $off
     <?php include 'includes/footer.php'; ?>
 
     <script>
-        document.getElementById('category').addEventListener('change', filterNews);
         document.getElementById('date').addEventListener('change', filterNews);
 
         function filterNews() {
-            const category = document.getElementById('category').value.toLowerCase();
             const date = document.getElementById('date').value;
             const items = document.querySelectorAll('.news-item');
 
             items.forEach(item => {
-                const itemCategory = item.dataset.category;
                 const itemDate = item.dataset.date;
 
-                const categoryMatch = !category || itemCategory.includes(category);
                 const dateMatch = !date || itemDate === date;
 
-                item.style.display = categoryMatch && dateMatch ? 'flex' : 'none';
+                item.style.display = dateMatch ? 'flex' : 'none';
             });
         }
     </script>

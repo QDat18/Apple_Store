@@ -1,9 +1,22 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 session_start();
 require_once 'config/db.php';
 
 // Kiểm tra quyền admin
 $is_admin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+
+// Hàm tạo slug đơn giản
+function generateSlug($string) {
+    $string = strtolower($string);
+    $string = iconv('UTF-8', 'ASCII//TRANSLIT', $string);
+    $string = preg_replace('/[^a-z0-9\s-]/', '', $string);
+    $string = trim($string);
+    $string = preg_replace('/\s+/', '-', $string);
+    return $string;
+}
 
 // Xử lý thêm khuyến mãi
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $is_admin) {
@@ -12,24 +25,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $is_admin) {
     $type = $_POST['type'];
     $expiry_date = $_POST['expiry_date'];
     $image_url = $_POST['image_url'];
+    $slug = generateSlug($title); // Tạo slug từ tiêu đề
 
-    $stmt = $conn->prepare("INSERT INTO promotions (title, description, type, expiry_date, image_url) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssss", $title, $description, $type, $expiry_date, $image_url);
+    // Kiểm tra slug đã tồn tại chưa
+    $stmt_check_slug = $conn->prepare("SELECT COUNT(*) FROM promotions WHERE slug = ?");
+    $stmt_check_slug->bind_param("s", $slug);
+    $stmt_check_slug->execute();
+    $slug_exists = $stmt_check_slug->get_result()->fetch_row()[0];
+    $stmt_check_slug->close();
+
+    if ($slug_exists > 0) {
+        // Thêm một hậu tố để đảm bảo slug là duy nhất nếu trùng
+        $slug = $slug . '-' . uniqid();
+    }
+
+    // Đã sửa câu lệnh INSERT để thêm slug
+    $stmt = $conn->prepare("INSERT INTO promotions (title, slug, description, type, expiry_date, image_url) VALUES (?, ?, ?, ?, ?, ?)");
+    // Đã sửa bind_param để bao gồm slug
+    $stmt->bind_param("ssssss", $title, $slug, $description, $type, $expiry_date, $image_url);
     $stmt->execute();
     $stmt->close();
     header("Location: promotion.php");
     exit;
 }
 
-// Phân trang
-$items_per_page = 2;
+// Tăng số lượng item/trang lên 20
+$items_per_page = 20;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $items_per_page;
 
 $total_items = $conn->query("SELECT COUNT(*) FROM promotions")->fetch_row()[0];
 $total_pages = ceil($total_items / $items_per_page);
 
-$result = $conn->query("SELECT * FROM promotions ORDER BY expiry_date DESC LIMIT $offset, $items_per_page");
+// Nếu không có filter thì luôn hiển thị tất cả khuyến mãi
+$filter_type = isset($_GET['type_filter']) ? $_GET['type_filter'] : '';
+$filter_expiry = isset($_GET['expiry_filter']) ? $_GET['expiry_filter'] : '';
+
+$sql_filter_where = [];
+$sql_filter_params = [];
+$sql_filter_types = '';
+
+if (!empty($filter_type)) {
+    $sql_filter_where[] = "type = ?";
+    $sql_filter_params[] = $filter_type;
+    $sql_filter_types .= 's';
+}
+if (!empty($filter_expiry)) {
+    $sql_filter_where[] = "expiry_date = ?";
+    $sql_filter_params[] = $filter_expiry;
+    $sql_filter_types .= 's';
+}
+
+$sql_where_clause = '';
+if (!empty($sql_filter_where)) {
+    $sql_where_clause = " WHERE " . implode(' AND ', $sql_filter_where);
+}
+
+$sql_select = "SELECT * FROM promotions" . $sql_where_clause . " LIMIT ?, ?";
+$sql_filter_params[] = $offset;
+$sql_filter_params[] = $items_per_page;
+$sql_filter_types .= 'ii';
+
+$stmt_select = $conn->prepare($sql_select);
+if (!$stmt_select) {
+    die("SQL error: " . $conn->error);
+}
+if (!empty($sql_filter_params)) {
+    $stmt_select->bind_param($sql_filter_types, ...$sql_filter_params);
+}
+$stmt_select->execute();
+$result = $stmt_select->get_result();
+
+// Render danh sách khuyến mãi bằng foreach để chắc chắn luôn hiển thị
 ?>
 
 <!DOCTYPE html>
@@ -131,7 +198,6 @@ $result = $conn->query("SELECT * FROM promotions ORDER BY expiry_date DESC LIMIT
 
         .promotion-item {
             display: flex;
-            align-items: center;
             margin-bottom: 1.5rem;
             padding: 1rem;
             border: 1px solid var(--border-color);
@@ -153,7 +219,7 @@ $result = $conn->query("SELECT * FROM promotions ORDER BY expiry_date DESC LIMIT
         }
 
         .promotion-content h3 {
-            color: var(--warning-color);
+            color: var(--info-color);
             margin-bottom: 0.5rem;
             font-size: 1.1rem;
         }
@@ -261,35 +327,42 @@ $result = $conn->query("SELECT * FROM promotions ORDER BY expiry_date DESC LIMIT
     <div class="container">
         <div class="filter-section">
             <h3>Lọc khuyến mãi</h3>
-            <select id="type">
+            <select id="type_filter" name="type_filter">
                 <option value="">Tất cả loại</option>
-                <option value="giảm giá">Giảm giá</option>
-                <option value="tặng phẩm">Tặng phẩm</option>
+                <option value="discount">Giảm giá</option>
+                <option value="event">Sự kiện</option>
+                <option value="shipping">Vận chuyển</option>
             </select>
-            <input type="date" id="expiry">
+            <input type="date" id="expiry_filter" name="expiry_filter">
         </div>
         <div class="promotion-list">
             <div class="promotion-header">
-                <h1 class="promotion-title">Chương trình khuyến mãi</h1>
+                <h1 class="promotion-title">Khuyến mãi</h1>
             </div>
-            <?php while ($row = $result->fetch_assoc()): ?>
-                <div class="promotion-item" data-type="<?php echo strtolower($row['type']); ?>" data-expiry="<?php echo $row['expiry_date']; ?>">
-                    <img src="<?php echo htmlspecialchars($row['image_url']); ?>" alt="<?php echo htmlspecialchars($row['title']); ?>" class="promotion-image">
-                    <div class="promotion-content">
-                        <h3><?php echo htmlspecialchars($row['title']); ?></h3>
-                        <p><?php echo htmlspecialchars($row['description']); ?></p>
-                        <a href="promotion_detail.php?id=<?php echo $row['id']; ?>" class="detail-btn"><i class="fas fa-info-circle"></i> Chi tiết</a>
-                    </div>
-                </div>
-            <?php endwhile; ?>
+            <?php
+            if ($result->num_rows === 0) {
+                echo '<p>Không có khuyến mãi nào.</p>';
+            } else {
+                while ($row = $result->fetch_assoc()) {
+                    echo '<div class="promotion-item" data-type="'.strtolower($row['type']).'" data-expiry="'.$row['expiry_date'].'">';
+                    echo '<img src="'.htmlspecialchars($row['image_url']).'" alt="'.htmlspecialchars($row['title']).'" class="promotion-image">';
+                    echo '<div class="promotion-content">';
+                    echo '<h3>'.htmlspecialchars($row['title']).'</h3>';
+                    echo '<p>'.htmlspecialchars($row['description']).'</p>';
+                    echo '<a href="promotion_detail.php?id='.$row['id'].'" class="detail-btn"><i class="fas fa-info-circle"></i> Chi tiết</a>';
+                    echo '</div></div>';
+                }
+            }
+            ?>
             <div class="admin-form">
                 <h3>Thêm khuyến mãi (Chỉ admin)</h3>
-                <form method="post">
+                <form method="post" action="promotion.php">
                     <input type="text" name="title" placeholder="Tiêu đề" required>
                     <textarea name="description" placeholder="Mô tả" required></textarea>
                     <select name="type">
-                        <option value="giảm giá">Giảm giá</option>
-                        <option value="tặng phẩm">Tặng phẩm</option>
+                        <option value="discount">Giảm giá</option>
+                        <option value="event">Sự kiện</option>
+                        <option value="shipping">Vận chuyển</option>
                     </select>
                     <input type="date" name="expiry_date" required>
                     <input type="text" name="image_url" placeholder="Đường dẫn ảnh" required>
@@ -298,7 +371,7 @@ $result = $conn->query("SELECT * FROM promotions ORDER BY expiry_date DESC LIMIT
             </div>
             <div class="pagination">
                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                    <a href="?page=<?php echo $i; ?>" class="<?php echo $page === $i ? 'active' : ''; ?>"><?php echo $i; ?></a>
+                    <a href="?page=<?php echo $i; ?><?php echo (!empty($filter_type) ? '&type_filter=' . urlencode($filter_type) : ''); ?><?php echo (!empty($filter_expiry) ? '&expiry_filter=' . urlencode($filter_expiry) : ''); ?>" class="<?php echo $page === $i ? 'active' : ''; ?>"><?php echo $i; ?></a>
                 <?php endfor; ?>
             </div>
         </div>
@@ -307,24 +380,36 @@ $result = $conn->query("SELECT * FROM promotions ORDER BY expiry_date DESC LIMIT
     <?php include 'includes/footer.php'; ?>
 
     <script>
-        document.getElementById('type').addEventListener('change', filterPromotions);
-        document.getElementById('expiry').addEventListener('change', filterPromotions);
+        document.getElementById('type_filter').addEventListener('change', applyFilters);
+        document.getElementById('expiry_filter').addEventListener('change', applyFilters);
 
-        function filterPromotions() {
-            const type = document.getElementById('type').value.toLowerCase();
-            const expiry = document.getElementById('expiry').value;
-            const items = document.querySelectorAll('.promotion-item');
-
-            items.forEach(item => {
-                const itemType = item.dataset.type;
-                const itemExpiry = item.dataset.expiry;
-
-                const typeMatch = !type || itemType === type;
-                const expiryMatch = !expiry || itemExpiry === expiry;
-
-                item.style.display = typeMatch && expiryMatch ? 'flex' : 'none';
-            });
+        function applyFilters() {
+            const type = document.getElementById('type_filter').value;
+            const expiry = document.getElementById('expiry_filter').value;
+            let url = 'promotion.php';
+            const params = [];
+            if (type) {
+                params.push('type_filter=' + encodeURIComponent(type));
+            }
+            if (expiry) {
+                params.push('expiry_filter=' + encodeURIComponent(expiry));
+            }
+            if (params.length > 0) {
+                url += '?' + params.join('&');
+            }
+            window.location.href = url;
         }
+
+        // Set initial filter values from URL params
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('type_filter')) {
+                document.getElementById('type_filter').value = urlParams.get('type_filter');
+            }
+            if (urlParams.has('expiry_filter')) {
+                document.getElementById('expiry_filter').value = urlParams.get('expiry_filter');
+            }
+        });
     </script>
 </body>
 </html>

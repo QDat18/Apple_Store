@@ -1,14 +1,26 @@
 <?php
 require_once 'config/db.php';
 
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$stmt = $conn->prepare("SELECT * FROM news WHERE id = ?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$row = $stmt->get_result()->fetch_assoc();
-$stmt->close();
+$news_data = null;
 
-if (!$row) {
+if (isset($_GET['id'])) {
+    $id = (int)$_GET['id'];
+    $stmt = $conn->prepare("SELECT * FROM news WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $news_data = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+} elseif (isset($_GET['slug'])) {
+    $slug = $_GET['slug'];
+    $stmt = $conn->prepare("SELECT * FROM news WHERE slug = ?");
+    $stmt->bind_param("s", $slug);
+    $stmt->execute();
+    $news_data = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+}
+
+
+if (!$news_data) {
     header("Location: news.php");
     exit;
 }
@@ -19,7 +31,7 @@ if (!$row) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($row['title']); ?> - Anh Em Rọt Store</title>
+    <title><?php echo htmlspecialchars($news_data['title']); ?> - Anh Em Rọt Store</title>
     <link rel="icon" href="assets/logo/logo.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="css/header.css">
@@ -49,42 +61,48 @@ if (!$row) {
             background-color: var(--background-color);
             color: var(--text-primary);
             line-height: 1.6;
+            margin: 0;
+            padding: 0;
         }
 
         .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem 1rem;
+            max-width: 900px;
+            margin: 2rem auto;
+            background: var(--card-background);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            padding: 2rem;
         }
 
         .detail-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .detail-title {
             font-size: 2rem;
             font-weight: 700;
-            color: var(--info-color);
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
         }
 
-        .detail-content {
-            background: var(--card-background);
-            border-radius: var(--border-radius);
-            padding: 2rem;
-            box-shadow: var(--shadow-md);
+        .detail-header p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
         }
 
         .detail-content img {
             max-width: 100%;
             height: auto;
             border-radius: var(--border-radius);
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .detail-content p {
-            color: var(--text-secondary);
+            font-size: 1rem;
+            color: var(--text-primary);
             margin-bottom: 1rem;
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
         }
 
         .back-btn {
@@ -122,14 +140,14 @@ if (!$row) {
 
     <div class="container">
         <div class="detail-header">
-            <h1 class="detail-title"><?php echo htmlspecialchars($row['title']); ?></h1>
-            <p>Ngày đăng: <?php echo htmlspecialchars($row['created_date']); ?></p>
+            <h1 class="detail-title"><?php echo htmlspecialchars($news_data['title']); ?></h1>
+            <p>Ngày đăng: <?php echo htmlspecialchars(date('d/m/Y H:i', strtotime($news_data['created_at']))); ?></p>
         </div>
         <div class="detail-content">
-            <img src="<?php echo htmlspecialchars($row['image_url']); ?>" alt="<?php echo htmlspecialchars($row['title']); ?>">
-            <p><?php echo nl2br(htmlspecialchars($row['content'])); ?></p>
-            <a href="news.php" class="back-btn"><i class="fas fa-arrow-left"></i> Quay lại</a>
+            <img src="<?php echo htmlspecialchars($news_data['image']); ?>" alt="<?php echo htmlspecialchars($news_data['title']); ?>">
+            <p><?php echo nl2br(htmlspecialchars($news_data['content'])); ?></p>
         </div>
+        <a href="news.php" class="back-btn"><i class="fas fa-arrow-left"></i> Quay lại Tin tức</a>
     </div>
 
     <?php include 'includes/footer.php'; ?>

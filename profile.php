@@ -16,7 +16,7 @@ $error_message = '';
 $success_message = '';
 
 // Đường dẫn upload ảnh đại diện
-$upload_dir = 'uploads/avatars/';
+$upload_dir = 'assets/avatars/';
 if (!is_dir($upload_dir)) {
     mkdir($upload_dir, 0777, true); // Đảm bảo thư mục tồn tại và có quyền ghi
 }
@@ -48,7 +48,7 @@ try {
         'email' => $user_data['email'],
         'phone' => $user_data['phone'],
         'address' => $user_data['address'],
-        'password' => $user_data['password'] // Để kiểm tra mật khẩu hiện tại
+        'password' => $user_data['password']
     ];
 
     $user_detail = [

@@ -1,160 +1,343 @@
 <?php
 session_start();
+date_default_timezone_set('Asia/Ho_Chi_Minh'); // Set correct timezone
 require_once 'config/db.php';
 
-$user_id = $_SESSION['user_id'] ?? 1; // Giả định user_id
-
-// Gọi API để lấy danh sách tỉnh/thành phố
-$api_url = 'https://provinces.open-api.vn/api/p/';
-$ch = curl_init($api_url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-$response = curl_exec($ch);
-$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-$cities = [];
-if ($http_code === 200) {
-    $cities = json_decode($response, true);
-    usort($cities, function ($a, $b) {
-        return strcmp($a['name'], $b['name']);
-    });
-} else {
-    $cities = [
-        ['code' => 1, 'name' => 'Hà Nội'],
-        ['code' => 2, 'name' => 'TP. Hồ Chí Minh'],
-        ['code' => 3, 'name' => 'Đà Nẵng'],
-        ['code' => 4, 'name' => 'Hải Phòng'],
-        ['code' => 5, 'name' => 'Cần Thơ'],
-        ['code' => 0, 'name' => 'Khác']
-    ];
+// Kiểm tra người dùng đã đăng nhập
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
 }
+
+$user_id = $_SESSION['user_id'];
+$error = '';
+$cart_items = [];
+$total_price = 0;
+
+// Debug session
+error_log("Session ID: " . session_id() . ", CSRF Token: " . ($_SESSION['csrf_token'] ?? 'Not set'));
+
+// Tạo hoặc sử dụng CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+/**
+ * Fetches product variant details including attributes.
+ * @param mysqli $conn Database connection.
+ * @param int $variant_id Variant ID.
+ * @return array|null Product variant details or null on failure.
+ */
+function getProductVariantDetailsForCheckout($conn, $variant_id) {
+    $stmt = $conn->prepare("
+        SELECT
+            pv.id AS variant_id,
+            pv.variant_code,
+            pv.variant_price,
+            pv.stock_quantity,
+            pv.variant_image,
+            p.id AS product_id,
+            p.category_id,
+            p.product_name,
+            (SELECT vav.value FROM variant_attribute_values vav
+             JOIN product_variant_attribute_links pval ON vav.id = pval.attribute_value_id
+             WHERE pval.variant_id = pv.id AND vav.attribute_id = 2) AS storage,
+            (SELECT vav.value FROM variant_attribute_values vav
+             JOIN product_variant_attribute_links pval ON vav.id = pval.attribute_value_id
+             WHERE pval.variant_id = pv.id AND vav.attribute_id = 1) AS color
+        FROM
+            product_variants pv
+        JOIN
+            products p ON pv.product_id = p.id
+        WHERE
+            pv.id = ?
+    ");
+    if (!$stmt) {
+        error_log("Prepare failed for getProductVariantDetailsForCheckout: " . $conn->error);
+        return null;
+    }
+    $stmt->bind_param("i", $variant_id);
+    if (!$stmt->execute()) {
+        error_log("Execute failed for getProductVariantDetailsForCheckout: " . $stmt->error);
+        return null;
+    }
+    $result = $stmt->get_result();
+    $data = $result->fetch_assoc();
+    $stmt->close();
+    return $data;
+}
+
+/**
+ * Calculates item price with promotions.
+ * @param mysqli $conn Database connection.
+ * @param float $base_price Base price of the item.
+ * @param int $product_id Product ID.
+ * @param int $category_id Category ID.
+ * @return float Final item price after discounts.
+ */
+function calculateItemFinalPrice($conn, $base_price, $product_id, $category_id) {
+    $item_price = (float)$base_price;
+
+    // Apply hardcoded category/product discounts
+    if (in_array($product_id, [1, 2]) || in_array($category_id, [1, 3])) {
+        $item_price *= 0.9; // 10% discount
+    }
+
+    // Apply promotions from the 'promotions' table for iPhone 16 Pro (product_id = 2)
+    // Prepare statement outside the loop if this function is called repeatedly for many items
+    static $promo_stmt = null;
+    if ($promo_stmt === null) {
+        $promo_stmt = $conn->prepare("
+            SELECT type, description
+            FROM promotions
+            WHERE slug = ? AND expiry_date >= CURDATE()
+        ");
+        if (!$promo_stmt) {
+            error_log("Prepare failed for promotions query: " . $conn->error);
+        }
+    }
+
+    if ($promo_stmt) {
+        $promo_slug = 'giam-gia-10-iphone-16-pro'; // Specific slug for iPhone 16 Pro discount
+        $promo_stmt->bind_param("s", $promo_slug);
+        if ($promo_stmt->execute()) {
+            $promo_result = $promo_stmt->get_result();
+            if ($promo_result->num_rows > 0 && $product_id == 2) {
+                if ($promo_result->fetch_assoc()['type'] === 'discount') {
+                    $item_price *= 0.9; // Apply another 10% discount if promotion exists
+                }
+            }
+        } else {
+            error_log("Execute failed for promotions query: " . $promo_stmt->error);
+        }
+    }
+
+    return $item_price;
+}
+
+
+// Function to fetch all cart items for a user
+function fetchCartItems($conn, $user_id) {
+    $items = [];
+    $stmt = $conn->prepare("
+        SELECT
+            c.id AS cart_id,
+            c.variant_id,
+            c.quantity
+        FROM cart c
+        WHERE c.user_id = ?
+    ");
+    if (!$stmt) {
+        error_log("Prepare failed for fetching cart items: " . $conn->error);
+        return [];
+    }
+    $stmt->bind_param("i", $user_id);
+    if (!$stmt->execute()) {
+        error_log("Execute failed for fetching cart items: " . $stmt->error);
+        return [];
+    }
+    $result = $stmt->get_result();
+    $total_calculated_price = 0;
+    while ($row = $result->fetch_assoc()) {
+        $variant_details = getProductVariantDetailsForCheckout($conn, $row['variant_id']);
+        if ($variant_details) {
+            $item = array_merge($row, $variant_details);
+            $item_final_price = calculateItemFinalPrice($conn, $item['variant_price'], $item['product_id'], $item['category_id']);
+            $item['item_price'] = $item_final_price; // Store the final price after all discounts
+            $items[] = $item;
+            $total_calculated_price += $item_final_price * $item['quantity'];
+        }
+    }
+    $stmt->close();
+    return ['items' => $items, 'total_price' => $total_calculated_price];
+}
+
+// Fetch cities from API or fallback
+$cities = [];
+$cache_file = 'cache/provinces.json';
+$cache_time = 60 * 60 * 24; // Cache for 24 hours
+
+if (file_exists($cache_file) && (time() - filemtime($cache_file) < $cache_time)) {
+    $cities = json_decode(file_get_contents($cache_file), true);
+} else {
+    $api_url = 'https://provinces.open-api.vn/api/p/';
+    $ch = curl_init();
+    if ($ch === false) {
+        error_log("curl_init failed in checkout.php");
+        $error = "Lỗi hệ thống khi lấy danh sách tỉnh/thành phố.";
+    } else {
+        curl_setopt($ch, CURLOPT_URL, $api_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        $response = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($http_code === 200 && $response !== false) {
+            $cities = json_decode($response, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                usort($cities, function ($a, $b) {
+                    return strcmp($a['name'], $b['name']);
+                });
+                // Save to cache
+                if (!is_dir('cache')) {
+                    mkdir('cache', 0755, true);
+                }
+                file_put_contents($cache_file, json_encode($cities));
+            } else {
+                error_log("JSON decode error for cities API: " . json_last_error_msg());
+                $error = "Lỗi dữ liệu khi lấy danh sách tỉnh/thành phố.";
+            }
+        } else {
+            error_log("Failed to fetch cities from API. HTTP Code: $http_code, cURL Error: " . curl_error($ch));
+            $error = "Không thể kết nối đến API lấy danh sách tỉnh/thành phố.";
+        }
+    }
+
+    // Fallback if API fails or cache is empty
+    if (empty($cities)) {
+        $cities = [
+            ['code' => '01', 'name' => 'Thành phố Hà Nội'], // Updated codes to match API
+            ['code' => '79', 'name' => 'Thành phố Hồ Chí Minh'],
+            ['code' => '48', 'name' => 'Thành phố Đà Nẵng'],
+            ['code' => '31', 'name' => 'Thành phố Hải Phòng'],
+            ['code' => '92', 'name' => 'Thành phố Cần Thơ'],
+            ['code' => '00', 'name' => 'Tỉnh Khác'] // Generic "Other"
+        ];
+    }
+}
+
+
+// Initial cart fetch for display
+$cart_data_for_display = fetchCartItems($conn, $user_id);
+$cart_items = $cart_data_for_display['items'];
+$total_price = $cart_data_for_display['total_price'];
 
 // Xử lý đặt hàng
 $order_data = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
-    $full_name = trim($_POST['full_name']);
-    $email = trim($_POST['email']);
-    $phone = trim($_POST['phone']);
-    $address = trim($_POST['address']);
-    $city = trim($_POST['city']);
-    $district = trim($_POST['district']);
-    $ward = trim($_POST['ward']);
-    $payment_method = trim($_POST['payment_method']);
-    $notes = trim($_POST['notes'] ?? '');
-
-    // Kiểm tra dữ liệu đầu vào
-    if (empty($full_name) || empty($email) || empty($phone) || empty($address) || empty($city) || empty($district) || empty($ward) || empty($payment_method)) {
-        $error = "Vui lòng điền đầy đủ thông tin bắt buộc!";
+    error_log("Processing POST request: " . json_encode($_POST));
+    if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        $error = "Lỗi bảo mật: CSRF token không hợp lệ.";
+        error_log("CSRF token validation failed. Expected: {$_SESSION['csrf_token']}, Submitted: {$_POST['csrf_token']}");
     } else {
-        // Lấy giỏ hàng
-        $stmt = $conn->prepare("SELECT c.id AS cart_id, c.product_id, c.quantity, c.storage, c.color, p.name, pv.price, pv.stock 
-                                FROM cart c 
-                                JOIN products p ON c.product_id = p.id 
-                                JOIN product_variants pv ON c.product_id = pv.product_id AND c.storage = pv.storage AND c.color = pv.color 
-                                WHERE c.user_id = ?");
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $cart_items = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        $stmt->close();
+        $full_name = trim($_POST['full_name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $address = trim($_POST['address'] ?? '');
+        $city = trim($_POST['city'] ?? '');
+        $district = trim($_POST['district'] ?? '');
+        $ward = trim($_POST['ward'] ?? '');
+        $payment_method = trim($_POST['payment_method'] ?? '');
+        $notes = trim($_POST['notes'] ?? '');
 
-        if (empty($cart_items)) {
-            $error = "Giỏ hàng của bạn đang trống!";
+        // Validate input data
+        if (empty($full_name) || empty($email) || empty($phone) || empty($address) || empty($city) || empty($district) || empty($ward) || empty($payment_method)) {
+            $error = "Vui lòng điền đầy đủ thông tin bắt buộc!";
+            error_log("Missing required fields: " . json_encode($_POST));
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Email không hợp lệ!";
+            error_log("Invalid email format: $email");
+        } elseif (!preg_match('/^[0-9]{10,11}$/', $phone)) {
+            $error = "Số điện thoại không hợp lệ! (Chỉ chấp nhận 10 hoặc 11 chữ số)";
+            error_log("Invalid phone format: $phone");
+        } elseif (!in_array($payment_method, ['cod', 'bank', 'momo'])) {
+            $error = "Phương thức thanh toán không hợp lệ!";
+            error_log("Invalid payment method: $payment_method");
         } else {
-            // Kiểm tra tồn kho
-            foreach ($cart_items as $item) {
-                if ($item['quantity'] > $item['stock']) {
-                    $error = "Số lượng sản phẩm {$item['name']} ({$item['storage']}, {$item['color']}) vượt quá tồn kho!";
-                    break;
-                }
-            }
+            // Re-fetch cart items
+            $cart_data_for_order = fetchCartItems($conn, $user_id);
+            $cart_items_for_order = $cart_data_for_order['items'];
+            $total_amount = $cart_data_for_order['total_price'];
 
-            if (!isset($error)) {
-                // Tạo đơn hàng
-                $order_code = 'ORD' . date('YmdHis') . rand(100, 999);
-                $stmt = $conn->prepare("INSERT INTO orders (user_id, order_code, full_name, email, phone, address, city, district, ward, payment_method, notes, total, status) 
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'pending')");
-                $stmt->bind_param("issssssssss", $user_id, $order_code, $full_name, $email, $phone, $address, $city, $district, $ward, $payment_method, $notes);
-                if ($stmt->execute()) {
-                    $order_id = $conn->insert_id;
-
-                    // Tạo chi tiết đơn hàng và cập nhật tồn kho
-                    $total_amount = 0;
-                    foreach ($cart_items as $item) {
-                        $item_price = in_array($item['product_id'], [1, 2]) ? $item['price'] * 0.9 : $item['price'];
-                        $total_amount += $item_price * $item['quantity'];
-                        $stmt = $conn->prepare("INSERT INTO order_items (order_id, product_id, quantity, price, storage, color) 
-                                                VALUES (?, ?, ?, ?, ?, ?)");
-                        $stmt->bind_param("iiidss", $order_id, $item['product_id'], $item['quantity'], $item_price, $item['storage'], $item['color']);
-                        $stmt->execute();
-
-                        $stmt = $conn->prepare("UPDATE product_variants SET stock = stock - ? 
-                                                WHERE product_id = ? AND storage = ? AND color = ?");
-                        $stmt->bind_param("iiss", $item['quantity'], $item['product_id'], $item['storage'], $item['color']);
-                        $stmt->execute();
+            if (empty($cart_items_for_order)) {
+                $error = "Giỏ hàng của bạn đang trống!";
+                error_log("Empty cart for user_id: $user_id on order placement attempt.");
+            } else {
+                // Check stock
+                foreach ($cart_items_for_order as $item) {
+                    $variant_details = getProductVariantDetailsForCheckout($conn, $item['variant_id']);
+                    if (!$variant_details || $item['quantity'] > $variant_details['stock_quantity']) {
+                        $error = "Sản phẩm {$item['product_name']} ({$item['storage']}, {$item['color']}) vượt quá tồn kho! (Tồn kho hiện tại: " . ($variant_details['stock_quantity'] ?? 0) . ")";
+                        error_log("Stock insufficient for variant_id: {$item['variant_id']}, requested: {$item['quantity']}, available: " . ($variant_details['stock_quantity'] ?? 'N/A'));
+                        break;
                     }
-
-                    // Xóa giỏ hàng
-                    $stmt = $conn->prepare("DELETE FROM cart WHERE user_id = ?");
-                    $stmt->bind_param("i", $user_id);
-                    $stmt->execute();
-
-                    // Tạo bản ghi thanh toán
-                    $stmt = $conn->prepare("INSERT INTO payments (order_id, amount, method, status) 
-                                            VALUES (?, ?, ?, 'pending')");
-                    $stmt->bind_param("ids", $order_id, $total_amount, $payment_method);
-                    $stmt->execute();
-                    $stmt->close();
-
-                    // Lưu thông tin đơn hàng để sử dụng trong PDF
-                    $order_data = [
-                        'order_code' => $order_code,
-                        'full_name' => $full_name,
-                        'email' => $email,
-                        'phone' => $phone,
-                        'address' => $address,
-                        'city' => $city,
-                        'district' => $district,
-                        'ward' => $ward,
-                        'payment_method' => $payment_method,
-                        'notes' => $notes,
-                        'items' => $cart_items,
-                        'total' => $total_amount
-                    ];
-
-                    $_SESSION['order_data'] = $order_data; // Lưu dữ liệu đơn hàng
-                    header('Location: order_success.php?order_code=' . urlencode($order_data['order_code']));
-                    exit;
-                } else {
-                    $error = "Lỗi khi tạo đơn hàng: " . $stmt->error;
                 }
-                $stmt->close();
+
+                if (empty($error)) {
+                    $conn->begin_transaction();
+                    try {
+                        // Check if required tables exist
+                        $required_tables = ['orders', 'order_items', 'product_variants', 'cart'];
+                        foreach ($required_tables as $table) {
+                            $result = $conn->query("SHOW TABLES LIKE '$table'");
+                            if ($result->num_rows === 0) {
+                                throw new Exception("Bảng '$table' không tồn tại trong cơ sở dữ liệu.");
+                            }
+                        }
+
+                        // Tạo order_code duy nhất
+                        $order_code = 'ORD' . date('YmdHis') . rand(100, 999);
+                        // Lưu vào bảng orders
+                        $stmt = $conn->prepare("INSERT INTO orders (order_code, user_id, order_date, total_amount, status, shipping_address, full_name, email, phone_number, notes, payment_method) VALUES (?, ?, NOW(), ?, 'Pending', ?, ?, ?, ?, ?, ?)");
+                        $total_amount = $total_price;
+                        $shipping_address = $address . ', ' . $ward . ', ' . $district . ', ' . $city;
+                        $stmt->bind_param("sidssssss", $order_code, $user_id, $total_amount, $shipping_address, $full_name, $email, $phone, $notes, $payment_method);
+                        if ($stmt->execute()) {
+                            $order_id = $stmt->insert_id;
+                            $stmt->close();
+                            // Lưu từng sản phẩm vào order_items
+                            foreach ($cart_items_for_order as $item) {
+                                $stmt = $conn->prepare("INSERT INTO order_items (order_id, variant_id, quantity, price) VALUES (?, ?, ?, ?)");
+                                $stmt->bind_param("iiid", $order_id, $item['variant_id'], $item['quantity'], $item['item_price']);
+                                $stmt->execute();
+                                $stmt->close();
+                            }
+                            // Xóa giỏ hàng
+                            $stmt = $conn->prepare("DELETE FROM cart WHERE user_id = ?");
+                            $stmt->bind_param("i", $user_id);
+                            $stmt->execute();
+                            $stmt->close();
+                            unset($_SESSION['cart']);
+                            // Store order data in session (trước khi redirect)
+                            $_SESSION['order_data'] = [
+                                'order_code' => $order_code,
+                                'full_name' => $full_name,
+                                'email' => $email,
+                                'phone' => $phone,
+                                'address' => $shipping_address,
+                                'ward' => $ward,
+                                'district' => $district,
+                                'city' => $city,
+                                'payment_method' => $payment_method,
+                                'notes' => $notes,
+                                'items' => $cart_items_for_order,
+                                'total' => $total_amount
+                            ];
+                            error_log("[CHECKOUT] Saved order_data to session for order_code: $order_code");
+                            unset($_SESSION['csrf_token']);
+                            $conn->commit();
+                            error_log("[CHECKOUT] Redirecting to order_success.php with order_code: $order_code");
+                            header('Location: order_success.php?order_code=' . urlencode($order_code));
+                            exit();
+                        } else {
+                            $error = 'Lỗi khi lưu đơn hàng: ' . $stmt->error;
+                            $stmt->close();
+                            $conn->rollback();
+                        }
+                    } catch (Exception $e) {
+                        $conn->rollback();
+                        $error = "Đã xảy ra lỗi trong quá trình đặt hàng. Vui lòng thử lại hoặc liên hệ hỗ trợ qua hotline: 0123 456 789.";
+                        error_log("Order placement failed: " . $e->getMessage());
+                    }
+                }
             }
         }
     }
 }
-
-// Lấy giỏ hàng
-$cart_items = [];
-$total_price = 0;
-$stmt = $conn->prepare("SELECT c.id AS cart_id, c.product_id, c.quantity, c.storage, c.color, p.name, p.image, pv.price 
-                        FROM cart c 
-                        JOIN products p ON c.product_id = p.id 
-                        JOIN product_variants pv ON c.product_id = pv.product_id AND c.storage = pv.storage AND c.color = pv.color 
-                        WHERE c.user_id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-while ($row = $result->fetch_assoc()) {
-    $cart_items[] = $row;
-    $item_price = in_array($row['product_id'], [1, 2]) ? $row['price'] * 0.9 : $row['price'];
-    $total_price += $item_price * $row['quantity'];
-}
-$stmt->close();
-
-$shipping_fee = 0;
-$tax = 0;
-$final_total = $total_price + $shipping_fee + $tax;
+$shipping_fee = 0; // Or calculate based on address/total_price
+$tax = 0; // Or calculate based on total_price
+$final_total = (float)$total_price + $shipping_fee + $tax;
 ?>
 
 <!DOCTYPE html>
@@ -487,13 +670,10 @@ $final_total = $total_price + $shipping_fee + $tax;
             border-radius: var(--border-radius);
             padding: 2rem;
             box-shadow: var(--shadow-md);
-            position: sticky;
-            top: 2rem;
-            height: fit-content;
         }
 
         .summary-title {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 700;
             color: var(--text-primary);
             margin-bottom: 1.5rem;
@@ -502,261 +682,128 @@ $final_total = $total_price + $shipping_fee + $tax;
             gap: 0.5rem;
         }
 
-        .order-items {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-bottom: 1.5rem;
+        .summary-products {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
         }
 
-        .order-item {
+        .summary-product-item {
             display: flex;
             align-items: center;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+            gap: 1rem;
         }
 
-        .order-item:last-child {
-            border-bottom: none;
-        }
-
-        .item-image {
+        .summary-product-image {
             width: 60px;
             height: 60px;
-            border-radius: 8px;
             object-fit: cover;
-            margin-right: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
 
-        .item-info {
+        .summary-product-info {
             flex: 1;
         }
 
-        .item-name {
+        .summary-product-name {
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 0.25rem;
-            font-size: 0.9rem;
         }
 
-        .item-price {
-            font-weight: 600;
-            color: var(--accent-color);
+        .summary-product-qty-price {
             font-size: 0.9rem;
-        }
-
-        .item-quantity {
-            background: var(--background-color);
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 600;
             color: var(--text-secondary);
-            margin-left: 1rem;
+        }
+
+        .summary-details {
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
         }
 
         .summary-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .summary-row:last-child {
-            border-bottom: none;
-            padding-top: 1rem;
-            margin-top: 1rem;
-            border-top: 2px solid var(--border-color);
-        }
-
-        .summary-label {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-        }
-
-        .summary-value {
-            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
             color: var(--text-primary);
         }
 
-        .summary-total {
-            font-size: 1.3rem;
+        .summary-row span:last-child {
+            font-weight: 600;
+        }
+
+        .summary-row.total {
+            font-size: 1.2rem;
             font-weight: 700;
             color: var(--accent-color);
+            border-top: 1px dashed var(--border-color);
+            padding-top: 1rem;
+            margin-top: 1rem;
         }
 
         .place-order-btn {
+            display: block;
             width: 100%;
-            background: linear-gradient(135deg, var(--accent-color), var(--success-color));
-            color: white;
-            border: none;
             padding: 1rem;
-            border-radius: var(--border-radius);
+            background-color: var(--accent-color);
+            color: white;
             font-size: 1.1rem;
             font-weight: 600;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
             transition: var(--transition);
-            margin-top: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
+            text-align: center;
+            text-decoration: none;
         }
 
         .place-order-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+            background-color: #5a67d8;
+            box-shadow: var(--shadow-md);
         }
 
-        .place-order-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .back-to-cart {
-            width: 100%;
-            background: none;
-            border: 2px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 0.75rem;
-            border-radius: var(--border-radius);
-            font-size: 1rem;
-            cursor: pointer;
-            transition: var(--transition);
-            margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .back-to-cart:hover {
-            border-color: var(--accent-color);
-            color: var(--accent-color);
-        }
-
-        .security-badge {
-            background: linear-gradient(135deg, rgba(72, 187, 120, 0.1), rgba(56, 178, 172, 0.1));
-            border: 1px solid var(--success-color);
-            border-radius: 8px;
+        .error-message-box {
+            background-color: var(--danger-color);
+            color: white;
             padding: 1rem;
-            margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
         }
 
-        .security-badge i {
-            color: var(--success-color);
-            font-size: 1.2rem;
-        }
-
-        .security-text {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        @media (max-width: 1024px) {
+        @media (max-width: 992px) {
             .checkout-content {
                 grid-template-columns: 1fr;
             }
 
-            .order-summary {
-                position: static;
-                order: -1;
+            .checkout-progress {
+                flex-wrap: wrap;
+            }
+
+            .progress-step {
+                width: 50%;
+                justify-content: center;
+                margin-bottom: 1rem;
+            }
+
+            .progress-step:not(:last-child)::after {
+                display: none;
             }
         }
 
         @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-
-            .checkout-progress {
-                padding: 1rem;
-            }
-
-            .progress-step {
-                padding: 0 1rem;
-            }
-
-            .progress-step:not(:last-child)::after {
-                width: 2rem;
-                right: -1rem;
-            }
-
-            .progress-text {
-                display: none;
-            }
-
             .form-row {
                 grid-template-columns: 1fr;
             }
 
-            .checkout-form,
-            .order-summary {
-                padding: 1.5rem;
-            }
-
-            .qr-code-image {
-                max-width: 150px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .checkout-progress {
-                padding: 1rem 0.5rem;
-            }
-
             .progress-step {
-                padding: 0 0.5rem;
-            }
-
-            .progress-step:not(:last-child)::after {
-                width: 1rem;
-                right: -0.5rem;
-            }
-
-            .section-title {
-                font-size: 1.1rem;
-            }
-
-            .form-input {
-                padding: 0.625rem 0.75rem;
-            }
-
-            .qr-code-image {
-                max-width: 120px;
-            }
-        }
-
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .loading::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 20px;
-            margin: -10px 0 0 -10px;
-            border: 2px solid var(--accent-color);
-            border-top: 2px solid transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
+                width: 100%;
+                justify-content: flex-start;
             }
         }
     </style>
@@ -768,310 +815,410 @@ $final_total = $total_price + $shipping_fee + $tax;
     <div class="container">
         <div class="checkout-progress">
             <div class="progress-step completed">
-                <div class="progress-icon">
-                    <i class="fas fa-shopping-cart"></i>
-                </div>
+                <div class="progress-icon"><i class="fas fa-shopping-cart"></i></div>
                 <span class="progress-text">Giỏ hàng</span>
             </div>
             <div class="progress-step active">
-                <div class="progress-icon">
-                    <i class="fas fa-credit-card"></i>
-                </div>
+                <div class="progress-icon"><i class="fas fa-credit-card"></i></div>
                 <span class="progress-text">Thanh toán</span>
             </div>
             <div class="progress-step">
-                <div class="progress-icon">
-                    <i class="fas fa-check"></i>
-                </div>
+                <div class="progress-icon"><i class="fas fa-check-circle"></i></div>
                 <span class="progress-text">Hoàn tất</span>
             </div>
         </div>
 
-        <?php if (isset($error)): ?>
-            <div class="error-message"><?= htmlspecialchars($error) ?></div>
+        <?php if (!empty($error)) : ?>
+            <div class="error-message-box">
+                <?= htmlspecialchars($error) ?>
+            </div>
         <?php endif; ?>
 
         <div class="checkout-content">
             <div class="checkout-form">
-                <form method="POST" id="checkoutForm">
-                    <div class="form-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-shipping-fast"></i>
-                            Thông tin giao hàng
-                        </h3>
+                <form action="checkout.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+                    <input type="hidden" name="place_order" value="1">
 
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-user"></i> Thông tin khách hàng</h2>
                         <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label required">Họ và tên</label>
-                                <input type="text" name="full_name" class="form-input" required
-                                    value="<?= isset($full_name) ? htmlspecialchars($full_name) : '' ?>">
+                            <div class="form-group full-width">
+                                <label for="full_name" class="form-label required">Họ và tên:</label>
+                                <input type="text" id="full_name" name="full_name" class="form-input" required value="<?= htmlspecialchars($_POST['full_name'] ?? '') ?>">
                             </div>
                             <div class="form-group">
-                                <label class="form-label required">Email</label>
-                                <input type="email" name="email" class="form-input" required
-                                    value="<?= isset($email) ? htmlspecialchars($email) : '' ?>">
+                                <label for="email" class="form-label required">Email:</label>
+                                <input type="email" id="email" name="email" class="form-input" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
                             </div>
                             <div class="form-group">
-                                <label class="form-label required">Số điện thoại</label>
-                                <input type="tel" name="phone" class="form-input" required
-                                    value="<?= isset($phone) ? htmlspecialchars($phone) : '' ?>">
+                                <label for="phone" class="form-label required">Số điện thoại:</label>
+                                <input type="tel" id="phone" name="phone" class="form-input" required value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>">
                             </div>
                         </div>
+                    </div>
 
+                    <div class="form-section">
+                        <h2 class="section-title"><i class="fas fa-map-marker-alt"></i> Địa chỉ giao hàng</h2>
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label required">Thành phố</label>
-                                <select name="city" class="form-input form-select" required>
-                                    <option value="">Chọn thành phố</option>
-                                    <?php foreach ($cities as $city): ?>
-                                        <option value="<?= htmlspecialchars($city['name']) ?>" <?= isset($city_selected) && $city_selected === $city['name'] ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($city['name']) ?>
+                                <label for="city" class="form-label required">Tỉnh/Thành phố:</label>
+                                <select id="city" name="city" class="form-input form-select" required>
+                                    <option value="">Chọn tỉnh/thành phố</option>
+                                    <?php foreach ($cities as $city_item) : ?>
+                                        <option value="<?= htmlspecialchars($city_item['name']) ?>" data-code="<?= htmlspecialchars($city_item['code']) ?>" <?= (isset($_POST['city']) && $_POST['city'] == $city_item['name']) ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($city_item['name']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label required">Quận/Huyện</label>
-                                <select name="district" class="form-input form-select" required>
+                                <label for="district" class="form-label required">Quận/Huyện:</label>
+                                <select id="district" name="district" class="form-input form-select" required>
                                     <option value="">Chọn quận/huyện</option>
+                                    <?php if (isset($_POST['city']) && isset($_POST['district'])) : // Repopulate districts if form submitted
+                                        $selectedCityCode = '';
+                                        foreach ($cities as $city_item) {
+                                            if ($city_item['name'] === $_POST['city']) {
+                                                $selectedCityCode = $city_item['code'];
+                                                break;
+                                            }
+                                        }
+                                        if ($selectedCityCode) {
+                                            $districts_api_url = "https://provinces.open-api.vn/api/p/{$selectedCityCode}?depth=2";
+                                            $ch_dist = curl_init($districts_api_url);
+                                            curl_setopt($ch_dist, CURLOPT_RETURNTRANSFER, true);
+                                            $districts_response = curl_exec($ch_dist);
+                                            curl_close($ch_dist);
+                                            $districts_data = json_decode($districts_response, true);
+                                            if (isset($districts_data['districts'])) {
+                                                foreach ($districts_data['districts'] as $dist) {
+                                                    echo '<option value="' . htmlspecialchars($dist['name']) . '" data-code="' . htmlspecialchars($dist['code']) . '" ' . ((isset($_POST['district']) && $_POST['district'] == $dist['name']) ? 'selected' : '') . '>' . htmlspecialchars($dist['name']) . '</option>';
+                                                }
+                                            }
+                                        }
+                                    endif; ?>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label required">Phường/Xã</label>
-                                <select name="ward" class="form-input form-select" required>
+                                <label for="ward" class="form-label required">Phường/Xã:</label>
+                                <select id="ward" name="ward" class="form-input form-select" required>
                                     <option value="">Chọn phường/xã</option>
+                                    <?php if (isset($_POST['district']) && isset($_POST['ward'])) : // Repopulate wards if form submitted
+                                        $selectedCityCode = '';
+                                        foreach ($cities as $city_item) {
+                                            if ($city_item['name'] === $_POST['city']) {
+                                                $selectedCityCode = $city_item['code'];
+                                                break;
+                                            }
+                                        }
+
+                                        $selectedDistrictCode = '';
+                                        if ($selectedCityCode) {
+                                            $districts_api_url = "https://provinces.open-api.vn/api/p/{$selectedCityCode}?depth=2";
+                                            $ch_dist = curl_init($districts_api_url);
+                                            curl_setopt($ch_dist, CURLOPT_RETURNTRANSFER, true);
+                                            $districts_response = curl_exec($ch_dist);
+                                            curl_close($ch_dist);
+                                            $districts_data = json_decode($districts_response, true);
+                                            if (isset($districts_data['districts'])) {
+                                                foreach ($districts_data['districts'] as $dist) {
+                                                    if ($dist['name'] === $_POST['district']) {
+                                                        $selectedDistrictCode = $dist['code'];
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if ($selectedDistrictCode) {
+                                            $wards_api_url = "https://provinces.open-api.vn/api/d/{$selectedDistrictCode}?depth=2";
+                                            $ch_ward = curl_init($wards_api_url);
+                                            curl_setopt($ch_ward, CURLOPT_RETURNTRANSFER, true);
+                                            $wards_response = curl_exec($ch_ward);
+                                            curl_close($ch_ward);
+                                            $wards_data = json_decode($wards_response, true);
+                                            if (isset($wards_data['wards'])) {
+                                                foreach ($wards_data['wards'] as $ward_item) {
+                                                    echo '<option value="' . htmlspecialchars($ward_item['name']) . '" ' . ((isset($_POST['ward']) && $_POST['ward'] == $ward_item['name']) ? 'selected' : '') . '>' . htmlspecialchars($ward_item['name']) . '</option>';
+                                                }
+                                            }
+                                        }
+                                    endif; ?>
                                 </select>
                             </div>
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label class="form-label required">Địa chỉ</label>
-                            <input type="text" name="address" class="form-input" placeholder="Số nhà, tên đường"
-                                required value="<?= isset($address) ? htmlspecialchars($address) : '' ?>">
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label class="form-label">Ghi chú</label>
-                            <textarea name="notes" class="form-input form-textarea"
-                                placeholder="Ghi chú thêm về đơn hàng (tùy chọn)"><?= isset($notes) ? htmlspecialchars($notes) : '' ?></textarea>
+                            <div class="form-group full-width">
+                                <label for="address" class="form-label required">Địa chỉ cụ thể (Số nhà, tên đường):</label>
+                                <input type="text" id="address" name="address" class="form-input" required value="<?= htmlspecialchars($_POST['address'] ?? '') ?>">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="notes" class="form-label">Ghi chú (Tùy chọn):</label>
+                                <textarea id="notes" name="notes" class="form-input form-textarea"><?= htmlspecialchars($_POST['notes'] ?? '') ?></textarea>
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-section">
-                        <h3 class="section-title">
-                            <i class="fas fa-credit-card"></i>
-                            Phương thức thanh toán
-                        </h3>
-
+                        <h2 class="section-title"><i class="fas fa-money-bill-wave"></i> Phương thức thanh toán</h2>
                         <div class="payment-methods">
-                            <div class="payment-method <?= isset($payment_method) && $payment_method === 'cod' ? 'selected' : '' ?>"
-                                data-method="cod">
-                                <input type="radio" name="payment_method" value="cod" class="payment-radio"
-                                    <?= isset($payment_method) && $payment_method === 'cod' ? 'checked' : 'checked' ?>>
-                                <div class="payment-icon">
-                                    <i class="fas fa-money-bill-wave"></i>
-                                </div>
+                            <label class="payment-method <?= (isset($_POST['payment_method']) && $_POST['payment_method'] == 'cod') ? 'selected' : '' ?>" data-method="cod">
+                                <input type="radio" name="payment_method" value="cod" class="payment-radio" <?= (isset($_POST['payment_method']) && $_POST['payment_method'] == 'cod') ? 'checked' : '' ?> required>
+                                <div class="payment-icon"><i class="fas fa-truck"></i></div>
                                 <div class="payment-info">
-                                    <div class="payment-title">Thanh toán khi nhận hàng</div>
-                                    <div class="payment-desc">Thanh toán bằng tiền mặt khi nhận hàng</div>
+                                    <div class="payment-title">Thanh toán khi nhận hàng (COD)</div>
+                                    <div class="payment-desc">Thanh toán tiền mặt cho nhân viên giao hàng khi bạn nhận được đơn.</div>
                                 </div>
-                            </div>
-
-                            <div class="payment-method <?= isset($payment_method) && $payment_method === 'bank' ? 'selected' : '' ?>"
-                                data-method="bank">
-                                <input type="radio" name="payment_method" value="bank" class="payment-radio"
-                                    <?= isset($payment_method) && $payment_method === 'bank' ? 'checked' : '' ?>>
-                                <div class="payment-icon">
-                                    <i class="fas fa-university"></i>
-                                </div>
+                            </label>
+                            <label class="payment-method <?= (isset($_POST['payment_method']) && $_POST['payment_method'] == 'bank') ? 'selected' : '' ?>" data-method="bank">
+                                <input type="radio" name="payment_method" value="bank" class="payment-radio" <?= (isset($_POST['payment_method']) && $_POST['payment_method'] == 'bank') ? 'checked' : '' ?> required>
+                                <div class="payment-icon"><i class="fas fa-building-columns"></i></div>
                                 <div class="payment-info">
                                     <div class="payment-title">Chuyển khoản ngân hàng</div>
-                                    <div class="payment-desc">Chuyển khoản qua ATM/Internet Banking</div>
+                                    <div class="payment-desc">Thanh toán qua chuyển khoản ngân hàng. Thông tin chi tiết sẽ hiển thị sau khi đặt hàng.</div>
                                 </div>
-                            </div>
-
-                            <div class="payment-method <?= isset($payment_method) && $payment_method === 'momo' ? 'selected' : '' ?>"
-                                data-method="momo">
-                                <input type="radio" name="payment_method" value="momo" class="payment-radio"
-                                    <?= isset($payment_method) && $payment_method === 'momo' ? 'checked' : '' ?>>
-                                <div class="payment-icon">
-                                    <i class="fas fa-mobile-alt"></i>
-                                </div>
+                            </label>
+                            <label class="payment-method <?= (isset($_POST['payment_method']) && $_POST['payment_method'] == 'momo') ? 'selected' : '' ?>" data-method="momo">
+                                <input type="radio" name="payment_method" value="momo" class="payment-radio" <?= (isset($_POST['payment_method']) && $_POST['payment_method'] == 'momo') ? 'checked' : '' ?> required>
+                                <div class="payment-icon"><i class="fas fa-wallet"></i></div>
                                 <div class="payment-info">
-                                    <div class="payment-title">Ví MoMo</div>
-                                    <div class="payment-desc">Thanh toán qua ứng dụng MoMo</div>
+                                    <div class="payment-title">Ví điện tử MoMo</div>
+                                    <div class="payment-desc">Thanh toán nhanh chóng qua ứng dụng MoMo.</div>
                                 </div>
-                            </div>
+                            </label>
                         </div>
 
-                        <div class="qr-code-container" id="qrCodeContainer">
-                            <img src="assets/images/qr-code.png" alt="QR Code Ngân Hàng" class="qr-code-image">
-                            <div class="qr-code-info">
-                                <p><strong>Ngân hàng:</strong> Vietcombank</p>
-                                <p><strong>Số tài khoản:</strong> 1234567890123</p>
-                                <p><strong>Chủ tài khoản:</strong> Nguyễn Văn A</p>
-                                <p><strong>Nội dung chuyển khoản:</strong> Thanh toán đơn hàng
-                                    <?php echo isset($order_code) ? htmlspecialchars($order_code) : '[Mã đơn hàng]'; ?>
-                                </p>
-                            </div>
+                        <div id="qrCodeBank" class="qr-code-container <?= (isset($_POST['payment_method']) && $_POST['payment_method'] == 'bank') ? 'active' : '' ?>">
+                            <img src="assets/images/bank_qr.png" alt="QR Code Ngân hàng" class="qr-code-image">
+                            <p class="qr-code-info">Quét mã QR để chuyển khoản hoặc chuyển đến thông tin sau:</p>
+                            <p class="qr-code-info"><strong>Ngân hàng:</strong> ACB</p>
+                            <p class="qr-code-info"><strong>Số tài khoản:</strong> 1234567890</p>
+                            <p class="qr-code-info"><strong>Chủ tài khoản:</strong> NGUYEN VAN A</p>
+                            <p class="qr-code-info"><strong>Nội dung chuyển khoản:</strong> Mã đơn hàng của bạn</p>
+                        </div>
+                        <div id="qrCodeMomo" class="qr-code-container <?= (isset($_POST['payment_method']) && $_POST['payment_method'] == 'momo') ? 'active' : '' ?>">
+                            <img src="assets/images/momo_qr.png" alt="QR Code MoMo" class="qr-code-image">
+                            <p class="qr-code-info">Quét mã QR để thanh toán qua MoMo:</p>
+                            <p class="qr-code-info"><strong>Số điện thoại:</strong> 0987 654 321</p>
+                            <p class="qr-code-info"><strong>Tên người nhận:</strong> NGUYEN THI B</p>
+                            <p class="qr-code-info"><strong>Nội dung:</strong> Mã đơn hàng của bạn</p>
                         </div>
                     </div>
-
-                    <input type="hidden" name="place_order" value="1">
-                    <button type="submit" class="place-order-btn"><i class="fas fa-check-circle"></i> Đặt hàng</button>
-                    <a href="cart.php" class="back-to-cart"><i class="fas fa-arrow-left"></i> Quay lại giỏ hàng</a>
+                    <?php if (!empty($cart_items)) : ?>
+                        <button type="submit" class="place-order-btn">
+                            Đặt hàng ngay - <?= number_format($final_total, 2) ?> VNĐ
+                        </button>
+                    <?php else : ?>
+                        <p class="error-message-box">Giỏ hàng của bạn đang trống. Vui lòng thêm sản phẩm để đặt hàng.</p>
+                        <a href="index.php" class="place-order-btn" style="background-color: #6c757d;">Quay về trang chủ</a>
+                    <?php endif; ?>
                 </form>
-
-                <div class="security-badge">
-                    <i class="fas fa-shield-alt"></i>
-                    <span class="security-text">Thông tin của bạn được bảo mật an toàn</span>
-                </div>
             </div>
 
             <div class="order-summary">
-                <h3 class="summary-title">
-                    <i class="fas fa-receipt"></i>
-                    Tóm tắt đơn hàng
-                </h3>
-
-                <div class="order-items">
-                    <?php foreach ($cart_items as $item): ?>
-                        <?php
-                        $item_price = in_array($item['product_id'], [1, 2]) ? $item['price'] * 0.9 : $item['price'];
-                        $subtotal = $item_price * $item['quantity'];
+                <h2 class="summary-title"><i class="fas fa-clipboard-list"></i> Tóm tắt đơn hàng</h2>
+                <?php if (!empty($cart_items)) : ?>
+                    <div class="summary-products">
+                        <?php foreach ($cart_items as $item) :
+                            $image_path = "assets/products/{$item['variant_image']}";
+                            $full_image_path = $_SERVER['DOCUMENT_ROOT'] . '/Apple_Shop/products' . $image_path; // Adjust as needed
+                            if (!file_exists($full_image_path)) {
+                                $image_path = 'assets/products/default-product.png';
+                            }
                         ?>
-                        <div class="order-item">
-                            <img src="assets/products/<?= htmlspecialchars($item['image']) ?>"
-                                alt="<?= htmlspecialchars($item['name']) ?>" class="item-image">
-                            <div class="item-info">
-                                <div class="item-name"><?= htmlspecialchars($item['name']) ?></div>
-                                <div class="item-variant"><?= htmlspecialchars($item['storage']) ?> -
-                                    <?= htmlspecialchars($item['color']) ?>
+                            <div class="summary-product-item">
+                                <img src="<?= htmlspecialchars($image_path) ?>" alt="<?= htmlspecialchars($item['product_name']) ?>" class="summary-product-image">
+                                <div class="summary-product-info">
+                                    <div class="summary-product-name"><?= htmlspecialchars($item['product_name']) ?></div>
+                                    <div class="summary-product-qty-price">
+                                        <?= htmlspecialchars($item['quantity']) ?> x <?= number_format($item['item_price'], 2) ?> VNĐ
+                                        <?php if (!empty($item['storage'])) : ?>
+                                            (<?= htmlspecialchars($item['storage']) ?>
+                                            <?php if (!empty($item['color'])) : ?>
+                                                - <?= htmlspecialchars($item['color']) ?>
+                                            <?php endif; ?>)
+                                        <?php elseif (!empty($item['color'])) : ?>
+                                            (<?= htmlspecialchars($item['color']) ?>)
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
-                                <div class="item-price">$<?= number_format($item_price, 2) ?></div>
                             </div>
-                            <div class="item-quantity">×<?= $item['quantity'] ?></div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="summary-details">
+                        <div class="summary-row">
+                            <span>Tổng tiền sản phẩm:</span>
+                            <span><?= number_format($total_price, 2) ?> VNĐ</span>
                         </div>
-                    <?php endforeach; ?>
-                </div>
-
-                <div class="summary-row">
-                    <span class="summary-label">Tạm tính</span>
-                    <span class="summary-value">$<?= number_format($total_price, 2) ?></span>
-                </div>
-
-                <div class="summary-row">
-                    <span class="summary-label">Phí vận chuyển</span>
-                    <span class="summary-value">Miễn phí</span>
-                </div>
-
-                <div class="summary-row">
-                    <span class="summary-label">Thuế VAT</span>
-                    <span class="summary-value">$0.00</span>
-                </div>
-
-                <div class="summary-row">
-                    <span class="summary-label">Tổng cộng</span>
-                    <span class="summary-value summary-total">$<?= number_format($final_total, 2) ?></span>
-                </div>
+                        <div class="summary-row">
+                            <span>Phí vận chuyển:</span>
+                            <span><?= number_format($shipping_fee, 2) ?> VNĐ</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Thuế:</span>
+                            <span><?= number_format($tax, 2) ?> VNĐ</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Tổng cộng:</span>
+                            <span><?= number_format($final_total, 2) ?> VNĐ</span>
+                        </div>
+                    </div>
+                <?php else : ?>
+                    <p>Không có sản phẩm nào trong giỏ hàng.</p>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 
     <?php include 'includes/footer.php'; ?>
-
     <script src="scripts/header.js"></script>
-    <script src="scripts/product.js"></script>
     <script>
-        const cities = <?php echo json_encode($cities); ?>;
+        const citySelect = document.getElementById('city');
+        const districtSelect = document.getElementById('district');
+        const wardSelect = document.getElementById('ward');
+        const paymentMethods = document.querySelectorAll('.payment-method input[type="radio"]');
+        const qrCodeBank = document.getElementById('qrCodeBank');
+        const qrCodeMomo = document.getElementById('qrCodeMomo');
 
-        document.querySelectorAll('.payment-method').forEach(method => {
-            method.addEventListener('click', () => {
-                document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
-                method.classList.add('selected');
-                method.querySelector('input[type="radio"]').checked = true;
+        // Initial population of cities from PHP (already done via PHP echo)
+        const citiesData = <?= json_encode($cities) ?>;
+        let selectedCityCode = '';
+        let selectedDistrictCode = '';
 
-                const qrCodeContainer = document.getElementById('qrCodeContainer');
-                if (method.dataset.method === 'bank') {
-                    qrCodeContainer.classList.add('active');
-                } else {
-                    qrCodeContainer.classList.remove('active');
-                }
-            });
-        });
-
-        document.getElementById('checkoutForm').addEventListener('submit', function (e) {
-            const button = this.querySelector('.place-order-btn');
-            button.classList.add('loading');
-            button.disabled = true;
-
-            document.querySelectorAll('.form-input.error, .form-select.error').forEach(input => input.classList.remove('error'));
-
-            const inputs = this.querySelectorAll('input[required], select[required]');
-            let valid = true;
-            inputs.forEach(input => {
-                if (!input.value.trim()) {
-                    input.classList.add('error');
-                    valid = false;
-                }
-            });
-
-            if (!valid) {
-                e.preventDefault();
-                button.classList.remove('loading');
-                button.disabled = false;
-                alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
-            }
-        });
-
-        const citySelect = document.querySelector('select[name="city"]');
-        const districtSelect = document.querySelector('select[name="district"]');
-        const wardSelect = document.querySelector('select[name="ward"]');
-
-        citySelect.addEventListener('change', async () => {
-            const cityCode = cities.find(city => city.name === citySelect.value)?.code;
+        // Function to update districts based on selected city
+        async function updateDistricts() {
             districtSelect.innerHTML = '<option value="">Chọn quận/huyện</option>';
             wardSelect.innerHTML = '<option value="">Chọn phường/xã</option>';
+            selectedDistrictCode = ''; // Reset district code
 
-            if (cityCode) {
+            const selectedCityName = citySelect.value;
+            const city = citiesData.find(c => c.name === selectedCityName);
+
+            if (city) {
+                selectedCityCode = city.code;
                 try {
-                    const response = await fetch(`https://provinces.open-api.vn/api/p/${cityCode}?depth=2`);
+                    const response = await fetch(`https://provinces.open-api.vn/api/p/${selectedCityCode}?depth=2`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
-                    data.districts.forEach(district => {
-                        const option = document.createElement('option');
-                        option.value = district.name;
-                        option.textContent = district.name;
-                        districtSelect.appendChild(option);
-                    });
+                    if (data && data.districts) {
+                        data.districts.sort((a, b) => a.name.localeCompare(b.name));
+                        data.districts.forEach(district => {
+                            const option = document.createElement('option');
+                            option.value = district.name;
+                            option.textContent = district.name;
+                            option.setAttribute('data-code', district.code);
+                            districtSelect.appendChild(option);
+                        });
+
+                        // If a district was previously selected (e.g., after form submission), re-select it
+                        const prevDistrict = '<?= htmlspecialchars($_POST['district'] ?? '') ?>';
+                        if (prevDistrict) {
+                            const foundOption = Array.from(districtSelect.options).find(opt => opt.value === prevDistrict);
+                            if (foundOption) {
+                                districtSelect.value = prevDistrict;
+                                selectedDistrictCode = foundOption.getAttribute('data-code');
+                                updateWards(); // Update wards based on re-selected district
+                            }
+                        }
+                    }
                 } catch (error) {
                     console.error('Lỗi khi lấy danh sách quận/huyện:', error);
                 }
             }
-        });
+        }
 
-        districtSelect.addEventListener('change', async () => {
-            const cityCode = cities.find(city => city.name === citySelect.value)?.code;
-            const districtName = districtSelect.value;
+        // Function to update wards based on selected district
+        async function updateWards() {
             wardSelect.innerHTML = '<option value="">Chọn phường/xã</option>';
 
-            if (cityCode && districtName) {
+            const selectedDistrictName = districtSelect.value;
+            const selectedDistrictOption = districtSelect.options[districtSelect.selectedIndex];
+            selectedDistrictCode = selectedDistrictOption ? selectedDistrictOption.getAttribute('data-code') : '';
+
+            if (selectedDistrictCode) {
                 try {
-                    const response = await fetch(`https://provinces.open-api.vn/api/p/${cityCode}?depth=2`);
+                    const response = await fetch(`https://provinces.open-api.vn/api/d/${selectedDistrictCode}?depth=2`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
-                    const district = data.districts.find(d => d.name === districtName);
-                    if (district) {
-                        const wardResponse = await fetch(`https://provinces.open-api.vn/api/d/${district.code}?depth=2`);
-                        const wardData = await wardResponse.json();
-                        wardData.wards.forEach(ward => {
+                    if (data && data.wards) {
+                        data.wards.sort((a, b) => a.name.localeCompare(b.name));
+                        data.wards.forEach(ward => {
                             const option = document.createElement('option');
                             option.value = ward.name;
                             option.textContent = ward.name;
                             wardSelect.appendChild(option);
                         });
+
+                        // If a ward was previously selected, re-select it
+                        const prevWard = '<?= htmlspecialchars($_POST['ward'] ?? '') ?>';
+                        if (prevWard) {
+                            wardSelect.value = prevWard;
+                        }
                     }
                 } catch (error) {
                     console.error('Lỗi khi lấy danh sách phường/xã:', error);
                 }
+            }
+        }
+
+        // Event Listeners
+        citySelect.addEventListener('change', updateDistricts);
+        districtSelect.addEventListener('change', updateWards);
+
+        paymentMethods.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const selectedMethod = document.querySelector('input[name="payment_method"]:checked').value;
+                qrCodeBank.classList.remove('active');
+                qrCodeMomo.classList.remove('active');
+
+                if (selectedMethod === 'bank') {
+                    qrCodeBank.classList.add('active');
+                } else if (selectedMethod === 'momo') {
+                    qrCodeMomo.classList.add('active');
+                }
+
+                // Update selected class for styling
+                document.querySelectorAll('.payment-method').forEach(label => {
+                    label.classList.remove('selected');
+                });
+                radio.closest('.payment-method').classList.add('selected');
+            });
+        });
+
+        // Initial calls to populate dropdowns if form was submitted with values
+        window.addEventListener('load', () => {
+            // Re-select payment method on load if previously selected
+            const initialPaymentMethod = '<?= htmlspecialchars($_POST['payment_method'] ?? '') ?>';
+            if (initialPaymentMethod) {
+                const selectedRadio = document.querySelector(`input[name="payment_method"][value="${initialPaymentMethod}"]`);
+                if (selectedRadio) {
+                    selectedRadio.checked = true;
+                    selectedRadio.closest('.payment-method').classList.add('selected');
+                    // Manually trigger change to show QR code if applicable
+                    if (initialPaymentMethod === 'bank') {
+                        qrCodeBank.classList.add('active');
+                    } else if (initialPaymentMethod === 'momo') {
+                        qrCodeMomo.classList.add('active');
+                    }
+                }
+            }
+
+            // Populate districts and wards if city/district were previously selected
+            const prevCity = '<?= htmlspecialchars($_POST['city'] ?? '') ?>';
+            if (prevCity) {
+                // Ensure city is selected in the dropdown
+                citySelect.value = prevCity;
+                updateDistricts().then(() => {
+                    const prevDistrict = '<?= htmlspecialchars($_POST['district'] ?? '') ?>';
+                    if (prevDistrict) {
+                        districtSelect.value = prevDistrict;
+                        updateWards(); // Call updateWards after districts are loaded
+                    }
+                });
             }
         });
     </script>

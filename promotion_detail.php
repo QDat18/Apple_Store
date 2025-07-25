@@ -1,14 +1,26 @@
 <?php
 require_once 'config/db.php';
 
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$stmt = $conn->prepare("SELECT * FROM promotions WHERE id = ?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$row = $stmt->get_result()->fetch_assoc();
-$stmt->close();
+$promotion_data = null;
 
-if (!$row) {
+if (isset($_GET['id'])) {
+    $id = (int)$_GET['id'];
+    $stmt = $conn->prepare("SELECT * FROM promotions WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $promotion_data = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+} elseif (isset($_GET['slug'])) {
+    $slug = $_GET['slug'];
+    $stmt = $conn->prepare("SELECT * FROM promotions WHERE slug = ?");
+    $stmt->bind_param("s", $slug);
+    $stmt->execute();
+    $promotion_data = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+}
+
+
+if (!$promotion_data) {
     header("Location: promotion.php");
     exit;
 }
@@ -19,7 +31,7 @@ if (!$row) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($row['title']); ?> - Anh Em Rọt Store</title>
+    <title><?php echo htmlspecialchars($promotion_data['title']); ?> - Anh Em Rọt Store</title>
     <link rel="icon" href="assets/logo/logo.png" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="css/header.css">
@@ -65,7 +77,7 @@ if (!$row) {
         .detail-title {
             font-size: 2rem;
             font-weight: 700;
-            color: var(--warning-color);
+            color: var(--info-color);
         }
 
         .detail-content {
@@ -122,12 +134,12 @@ if (!$row) {
 
     <div class="container">
         <div class="detail-header">
-            <h1 class="detail-title"><?php echo htmlspecialchars($row['title']); ?></h1>
-            <p>Hết hạn: <?php echo htmlspecialchars($row['expiry_date']); ?></p>
+            <h1 class="detail-title"><?php echo htmlspecialchars($promotion_data['title']); ?></h1>
+            <p>Hết hạn: <?php echo htmlspecialchars($promotion_data['expiry_date']); ?></p>
         </div>
         <div class="detail-content">
-            <img src="<?php echo htmlspecialchars($row['image_url']); ?>" alt="<?php echo htmlspecialchars($row['title']); ?>">
-            <p><?php echo nl2br(htmlspecialchars($row['description'])); ?></p>
+            <img src="<?php echo htmlspecialchars($promotion_data['image_url']); ?>" alt="<?php echo htmlspecialchars($promotion_data['title']); ?>">
+            <p><?php echo nl2br(htmlspecialchars($promotion_data['description'])); ?></p>
             <a href="promotion.php" class="back-btn"><i class="fas fa-arrow-left"></i> Quay lại</a>
         </div>
     </div>

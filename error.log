@@ -1,0 +1,19 @@
+[24-Jul-2025 20:31:07 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 54
+[24-Jul-2025 20:31:07 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 55
+[24-Jul-2025 20:31:07 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 56
+[24-Jul-2025 20:31:07 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 57
+[24-Jul-2025 20:31:17 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 54
+[24-Jul-2025 20:31:17 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 55
+[24-Jul-2025 20:31:17 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 56
+[24-Jul-2025 20:31:17 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 57
+[24-Jul-2025 20:31:32 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 54
+[24-Jul-2025 20:31:32 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 55
+[24-Jul-2025 20:31:32 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 56
+[24-Jul-2025 20:31:32 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 57
+[25-Jul-2025 11:06:29 Europe/Berlin] Exception in db.php: Host 'localhost' is not allowed to connect to this MariaDB server
+[25-Jul-2025 11:06:48 Europe/Berlin] Exception in db.php: Host 'localhost' is not allowed to connect to this MariaDB server
+[25-Jul-2025 11:08:09 Europe/Berlin] Exception in db.php: Host 'localhost' is not allowed to connect to this MariaDB server
+[25-Jul-2025 11:32:09 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 54
+[25-Jul-2025 11:32:09 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 55
+[25-Jul-2025 11:32:09 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 56
+[25-Jul-2025 11:32:09 Europe/Berlin] PHP Deprecated:  Constant FILTER_SANITIZE_STRING is deprecated in C:\xampp\htdocs\Apple_Shop\admin\manage_purchase_orders.php on line 57

@@ -1,0 +1,1240 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Jul 23, 2025 at 05:33 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `apple_store`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `product_variants`
+--
+
+CREATE TABLE `product_variants` (
+  `id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `variant_code` varchar(100) DEFAULT NULL,
+  `variant_price` decimal(10,2) NOT NULL,
+  `stock_quantity` int(11) DEFAULT 0,
+  `variant_image` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `status` tinyint(1) DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `product_variants`
+--
+
+INSERT INTO `product_variants` (`id`, `product_id`, `variant_code`, `variant_price`, `stock_quantity`, `variant_image`, `created_at`, `updated_at`, `status`) VALUES
+(10001, 1001, '1001-256GB-TITANTNHIN', 34990000.00, 20, 'assets/products/iphone/iphone16prm_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10002, 1001, '1001-256GB-TITANEN', 34990000.00, 20, 'assets/products/iphone/iphone16prm_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10003, 1001, '1001-256GB-TITANTRNG', 34990000.00, 20, 'assets/products/iphone/iphone16prm_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10004, 1001, '1001-256GB-TITANSAMC', 34990000.00, 20, 'assets/products/iphone/iphone16prm_titansamac.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10005, 1001, '1001-512GB-TITANTNHIN', 38990000.00, 20, 'assets/products/iphone/iphone16prm_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10006, 1001, '1001-512GB-TITANEN', 38990000.00, 20, 'assets/products/iphone/iphone16prm_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10007, 1001, '1001-512GB-TITANTRNG', 38990000.00, 20, 'assets/products/iphone/iphone16prm_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10008, 1001, '1001-512GB-TITANSAMC', 38990000.00, 20, 'assets/products/iphone/iphone16prm_titansamac.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10009, 1001, '1001-1TB-TITANTNHIN', 42990000.00, 20, 'assets/products/iphone/iphone16prm_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10010, 1001, '1001-1TB-TITANEN', 42990000.00, 20, 'assets/products/iphone/iphone16prm_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10011, 1001, '1001-1TB-TITANTRNG', 42990000.00, 20, 'assets/products/iphone/iphone16prm_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10012, 1001, '1001-1TB-TITANSAMC', 42990000.00, 20, 'assets/products/iphone/iphone16prm_titansamac.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10013, 1002, '1002-128GB-TITANTNHIN', 28990000.00, 20, 'assets/products/iphone/iphone16pro_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10014, 1002, '1002-128GB-TITANEN', 28990000.00, 20, 'assets/products/iphone/iphone16pro_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10015, 1002, '1002-128GB-TITANTRNG', 28990000.00, 20, 'assets/products/iphone/iphone16pro_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10016, 1002, '1002-128GB-TITANSAMC', 28990000.00, 20, 'assets/products/iphone/iphone16pro_titansamac.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10017, 1002, '1002-256GB-TITANTNHIN', 31990000.00, 20, 'assets/products/iphone/iphone16pro_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10018, 1002, '1002-256GB-TITANEN', 31990000.00, 20, 'assets/products/iphone/iphone16pro_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10019, 1002, '1002-256GB-TITANTRNG', 31990000.00, 20, 'assets/products/iphone/iphone16pro_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10020, 1002, '1002-256GB-TITANSAMC', 31990000.00, 20, 'assets/products/iphone/iphone16pro_titansamac.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10021, 1002, '1002-512GB-TITANTNHIN', 35990000.00, 20, 'assets/products/iphone/iphone16pro_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10022, 1002, '1002-512GB-TITANEN', 35990000.00, 20, 'assets/products/iphone/iphone16pro_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10023, 1002, '1002-512GB-TITANTRNG', 35990000.00, 20, 'assets/products/iphone/iphone16pro_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10024, 1002, '1002-512GB-TITANSAMC', 35990000.00, 20, 'assets/products/iphone/iphone16pro_titansamac.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10025, 1002, '1002-1TB-TITANTNHIN', 39990000.00, 20, 'assets/products/iphone/iphone16pro_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10026, 1002, '1002-1TB-TITANEN', 39990000.00, 20, 'assets/products/iphone/iphone16pro_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10027, 1002, '1002-1TB-TITANTRNG', 39990000.00, 20, 'assets/products/iphone/iphone16pro_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10028, 1002, '1002-1TB-TITANSAMC', 39990000.00, 20, 'assets/products/iphone/iphone16pro_titansamac.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10029, 1003, '1003-128GB-EN', 25990000.00, 20, 'assets/products/iphone/iphone16plus_den.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10030, 1003, '1003-128GB-TRNG', 25990000.00, 20, 'assets/products/iphone/iphone16plus_trang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10031, 1003, '1003-128GB-HNG', 25990000.00, 20, 'assets/products/iphone/iphone16plus_hong.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10032, 1003, '1003-128GB-XANHLC', 25990000.00, 20, 'assets/products/iphone/iphone16plus_xanhmongket.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10033, 1003, '1003-128GB-XANHLAM', 25990000.00, 20, 'assets/products/iphone/iphone16plus_xanhluuly.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10034, 1003, '1003-256GB-EN', 28990000.00, 20, 'assets/products/iphone/iphone16plus_den.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10035, 1003, '1003-256GB-TRNG', 28990000.00, 20, 'assets/products/iphone/iphone16plus_trang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10036, 1003, '1003-256GB-HNG', 28990000.00, 20, 'assets/products/iphone/iphone16plus_hong.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10037, 1003, '1003-256GB-XANHLC', 28990000.00, 20, 'assets/products/iphone/iphone16plus_xanhmongket.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10038, 1003, '1003-256GB-XANHLAM', 28990000.00, 20, 'assets/products/iphone/iphone16plus_xanhluuly.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10039, 1003, '1003-512GB-EN', 32990000.00, 20, 'assets/products/iphone/iphone16plus_den.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10040, 1003, '1003-512GB-TRNG', 32990000.00, 20, 'assets/products/iphone/iphone16plus_trang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10041, 1003, '1003-512GB-HNG', 32990000.00, 20, 'assets/products/iphone/iphone16plus_hong.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10042, 1003, '1003-512GB-XANHLC', 32990000.00, 20, 'assets/products/iphone/iphone16plus_xanhmongket.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10043, 1003, '1003-512GB-XANHLAM', 32990000.00, 20, 'assets/products/iphone/iphone16plus_xanhluuly.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10044, 1004, '1004-128GB-EN', 22990000.00, 20, 'assets/products/iphone/iphone16_den.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10045, 1004, '1004-128GB-TRNG', 22990000.00, 20, 'assets/products/iphone/iphone16_trang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10046, 1004, '1004-128GB-HNG', 22990000.00, 20, 'assets/products/iphone/iphone16_hong.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10047, 1004, '1004-128GB-XANHLC', 22990000.00, 20, 'assets/products/iphone/iphone16_xanhmongket.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10048, 1004, '1004-128GB-XANHLAM', 22990000.00, 20, 'assets/products/iphone/iphone16_xanhluuly.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10049, 1004, '1004-256GB-EN', 25990000.00, 20, 'assets/products/iphone/iphone16_den.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10050, 1004, '1004-256GB-TRNG', 25990000.00, 20, 'assets/products/iphone/iphone16_trang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10051, 1004, '1004-256GB-HNG', 25990000.00, 20, 'assets/products/iphone/iphone16_hong.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10052, 1004, '1004-256GB-XANHLC', 25990000.00, 20, 'assets/products/iphone/iphone16_xanhmongket.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10053, 1004, '1004-256GB-XANHLAM', 25990000.00, 20, 'assets/products/iphone/iphone16_xanhluuly.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10054, 1004, '1004-512GB-EN', 29990000.00, 20, 'assets/products/iphone/iphone16_den.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10055, 1004, '1004-512GB-TRNG', 29990000.00, 20, 'assets/products/iphone/iphone16_trang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10056, 1004, '1004-512GB-HNG', 29990000.00, 20, 'assets/products/iphone/iphone16_hong.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10057, 1004, '1004-512GB-XANHLC', 29990000.00, 20, 'assets/products/iphone/iphone16_xanhmongket.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10058, 1004, '1004-512GB-XANHLAM', 29990000.00, 20, 'assets/products/iphone/iphone16_xanhluuly.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10059, 1005, '1005-128GB-TRNG', 17990000.00, 20, 'assets/products/iphone/iphone16e_trang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10060, 1005, '1005-128GB-EN', 17990000.00, 20, 'assets/products/iphone/iphone16e_den.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10061, 1005, '1005-256GB-TRNG', 19990000.00, 20, 'assets/products/iphone/iphone16e_trang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10062, 1005, '1005-256GB-EN', 19990000.00, 20, 'assets/products/iphone/iphone16e_den.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10063, 1006, '1006-256GB-TITANTNHIN', 31990000.00, 20, 'assets/products/iphone/iphone15prm_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10064, 1006, '1006-256GB-TITANEN', 31990000.00, 20, 'assets/products/iphone/iphone15prm_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10065, 1006, '1006-256GB-TITANTRNG', 31990000.00, 20, 'assets/products/iphone/iphone15prm_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10066, 1006, '1006-256GB-TITANXANH', 31990000.00, 20, 'assets/products/iphone/iphone15prm_titanxanh.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10067, 1006, '1006-512GB-TITANTNHIN', 36990000.00, 20, 'assets/products/iphone/iphone15prm_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10068, 1006, '1006-512GB-TITANEN', 36990000.00, 20, 'assets/products/iphone/iphone15prm_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10069, 1006, '1006-512GB-TITANTRNG', 36990000.00, 20, 'assets/products/iphone/iphone15prm_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10070, 1006, '1006-512GB-TITANXANH', 36990000.00, 20, 'assets/products/iphone/iphone15prm_titanxanh.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10071, 1006, '1006-1TB-TITANTNHIN', 41990000.00, 20, 'assets/products/iphone/iphone15prm_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10072, 1006, '1006-1TB-TITANEN', 41990000.00, 20, 'assets/products/iphone/iphone15prm_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10073, 1006, '1006-1TB-TITANTRNG', 41990000.00, 20, 'assets/products/iphone/iphone15prm_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10074, 1006, '1006-1TB-TITANXANH', 41990000.00, 20, 'assets/products/iphone/iphone15prm_titanxanh.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10075, 1007, '1007-128GB-TITANTNHIN', 25990000.00, 20, 'assets/products/iphone/iphone15pro_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10076, 1007, '1007-128GB-TITANEN', 25990000.00, 20, 'assets/products/iphone/iphone15pro_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10077, 1007, '1007-128GB-TITANTRNG', 25990000.00, 20, 'assets/products/iphone/iphone15pro_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10078, 1007, '1007-128GB-TITANXANH', 25990000.00, 20, 'assets/products/iphone/iphone15pro_titanxanh.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10079, 1007, '1007-256GB-TITANTNHIN', 28990000.00, 20, 'assets/products/iphone/iphone15pro_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10080, 1007, '1007-256GB-TITANEN', 28990000.00, 20, 'assets/products/iphone/iphone15pro_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10081, 1007, '1007-256GB-TITANTRNG', 28990000.00, 20, 'assets/products/iphone/iphone15pro_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10082, 1007, '1007-256GB-TITANXANH', 28990000.00, 20, 'assets/products/iphone/iphone15pro_titanxanh.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10083, 1007, '1007-512GB-TITANTNHIN', 33990000.00, 20, 'assets/products/iphone/iphone15pro_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10084, 1007, '1007-512GB-TITANEN', 33990000.00, 20, 'assets/products/iphone/iphone15pro_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10085, 1007, '1007-512GB-TITANTRNG', 33990000.00, 20, 'assets/products/iphone/iphone15pro_titantrang.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10086, 1007, '1007-512GB-TITANXANH', 33990000.00, 20, 'assets/products/iphone/iphone15pro_titanxanh.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10087, 1007, '1007-1TB-TITANTNHIN', 38990000.00, 20, 'assets/products/iphone/iphone15pro_titantunhien.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10088, 1007, '1007-1TB-TITANEN', 38990000.00, 20, 'assets/products/iphone/iphone15pro_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10089, 1007, '1007-1TB-TITANTRNG', 38990000.00, 20, 'assets/products/iphone/iphone15pro_titanden.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10090, 1007, '1007-1TB-TITANXANH', 38990000.00, 20, 'assets/products/iphone/iphone15pro_titanxanh.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10091, 1008, '1008-128GB-EN', 22990000.00, 20, 'assets/products/iphone/iphone15plus_den.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10092, 1008, '1008-128GB-XANHL', 22990000.00, 20, 'assets/products/iphone/iphone15plus_xanhlanhat.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10093, 1008, '1008-128GB-HNG', 22990000.00, 20, 'assets/products/iphone/iphone15plus_hongnhat.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10094, 1008, '1008-128GB-VNG', 22990000.00, 20, 'assets/products/iphone/iphone15_vangnhat.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10095, 1008, '1008-128GB-XANHDNG', 22990000.00, 20, 'assets/products/iphone/iphone15plus_xanhduongnhat.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10096, 1008, '1008-256GB-EN', 25990000.00, 20, 'assets/products/iphone/iphone15plus_den.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10097, 1008, '1008-256GB-XANHL', 25990000.00, 20, 'assets/products/iphone/iphone15plus_xanhlanhat.png', '2025-07-21 11:17:35', '2025-07-21 11:17:35', 1),
+(10098, 1008, '1008-256GB-HNG', 25990000.00, 20, 'assets/products/iphone/iphone15plus_hongnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10099, 1008, '1008-256GB-VNG', 25990000.00, 20, 'assets/products/iphone/iphone15_vangnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10100, 1008, '1008-256GB-XANHDNG', 25990000.00, 20, 'assets/products/iphone/iphone15plus_xanhduongnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10101, 1008, '1008-512GB-EN', 30990000.00, 20, 'assets/products/iphone/iphone15plus_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10102, 1008, '1008-512GB-XANHL', 30990000.00, 20, 'assets/products/iphone/iphone15plus_xanhlanhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10103, 1008, '1008-512GB-HNG', 30990000.00, 20, 'assets/products/iphone/iphone15plus_hongnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10104, 1008, '1008-512GB-VNG', 30990000.00, 20, 'assets/products/iphone/iphone15_vangnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10105, 1008, '1008-512GB-XANHDNG', 30990000.00, 20, 'assets/products/iphone/iphone15plus_xanhduongnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10106, 1009, '1009-128GB-EN', 19990000.00, 20, 'assets/products/iphone/iphone15_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10107, 1009, '1009-128GB-XANHL', 19990000.00, 20, 'assets/products/iphone/iphone15_xanhlanhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10108, 1009, '1009-128GB-HNG', 19990000.00, 20, 'assets/products/iphone/iphone15_hongnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10109, 1009, '1009-128GB-VNG', 19990000.00, 20, 'assets/products/iphone/iphone15_vangnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10110, 1009, '1009-128GB-XANHDNG', 19990000.00, 20, 'assets/products/iphone/iphone15_xanhduongnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10111, 1009, '1009-256GB-EN', 22990000.00, 20, 'assets/products/iphone/iphone15_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10112, 1009, '1009-256GB-XANHL', 22990000.00, 20, 'assets/products/iphone/iphone15_xanhlanhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10113, 1009, '1009-256GB-HNG', 22990000.00, 20, 'assets/products/iphone/iphone15_hongnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10114, 1009, '1009-256GB-VNG', 22990000.00, 20, 'assets/products/iphone/iphone15_vangnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10115, 1009, '1009-256GB-XANHDNG', 22990000.00, 20, 'assets/products/iphone/iphone15_xanhduongnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10116, 1009, '1009-512GB-EN', 27990000.00, 20, 'assets/products/iphone/iphone15_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10117, 1009, '1009-512GB-XANHL', 27990000.00, 20, 'assets/products/iphone/iphone15_xanhlanhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10118, 1009, '1009-512GB-HNG', 27990000.00, 20, 'assets/products/iphone/iphone15_hongnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10119, 1009, '1009-512GB-VNG', 27990000.00, 20, 'assets/products/iphone/iphone15_vangnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10120, 1009, '1009-512GB-XANHDNG', 27990000.00, 20, 'assets/products/iphone/iphone15_xanhduongnhat.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10121, 1010, '1010-128GB-EN', 27990000.00, 20, 'assets/products/iphone/iphone14prm_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10122, 1010, '1010-128GB-BC', 27990000.00, 20, 'assets/products/iphone/iphone14prm_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10123, 1010, '1010-128GB-VNG', 27990000.00, 20, 'assets/products/iphone/iphone14prm_vang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10124, 1010, '1010-128GB-TM', 27990000.00, 20, 'assets/products/iphone/iphone14prm_tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10125, 1010, '1010-256GB-EN', 30990000.00, 20, 'assets/products/iphone/iphone14prm_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10126, 1010, '1010-256GB-BC', 30990000.00, 20, 'assets/products/iphone/iphone14prm_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10127, 1010, '1010-256GB-VNG', 30990000.00, 20, 'assets/products/iphone/iphone14prm_vang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10128, 1010, '1010-256GB-TM', 30990000.00, 20, 'assets/products/iphone/iphone14prm_tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10129, 1011, '1011-128GB-EN', 25990000.00, 20, 'assets/products/iphone/iphone14pro_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10130, 1011, '1011-128GB-BC', 25990000.00, 20, 'assets/products/iphone/iphone14pro_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10131, 1011, '1011-128GB-VNG', 25990000.00, 20, 'assets/products/iphone/iphone14pro_vang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10132, 1011, '1011-128GB-TM', 25990000.00, 20, 'assets/products/iphone/iphone14pro_tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10133, 1011, '1011-256GB-EN', 28990000.00, 20, 'assets/products/iphone/iphone14pro_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10134, 1011, '1011-256GB-BC', 28990000.00, 20, 'assets/products/iphone/iphone14pro_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10135, 1011, '1011-256GB-VNG', 28990000.00, 20, 'assets/products/iphone/iphone14pro_vang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10136, 1011, '1011-256GB-TM', 28990000.00, 20, 'assets/products/iphone/iphone14pro_tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10137, 1012, '1012-128GB-EN', 21990000.00, 20, 'assets/products/iphone/iphone14plus_den_512v256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10138, 1012, '1012-128GB-TRNG', 21990000.00, 20, 'assets/products/iphone/iphone14plus_trang_512v256.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10139, 1012, '1012-128GB-', 21990000.00, 20, 'assets/products/iphone/iphone14plus_do_512GB.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10140, 1012, '1012-128GB-TM', 21990000.00, 20, 'assets/products/iphone/iphone14plus_timnhat_512v256.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10141, 1012, '1012-128GB-XANHDNG', 21990000.00, 20, 'assets/products/iphone/iphone14plus_xanhduong_512v256.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10142, 1012, '1012-256GB-EN', 24990000.00, 20, 'assets/products/iphone/iphone14plus_den_512v256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10143, 1012, '1012-256GB-TRNG', 24990000.00, 20, 'assets/products/iphone/iphone14plus_trang_512v256.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10144, 1012, '1012-256GB-', 24990000.00, 20, 'assets/products/iphone/iphone14plus_do_512GB.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10145, 1012, '1012-256GB-TM', 24990000.00, 20, 'assets/products/iphone/iphone14plus_timnhat_512v256.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10146, 1012, '1012-256GB-XANHDNG', 24990000.00, 20, 'assets/products/iphone/iphone14plus_xanhduong_512v256.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10147, 1013, '1013-128GB-EN', 18990000.00, 20, 'assets/products/iphone/iphone14_den_256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10148, 1013, '1013-128GB-TRNG', 18990000.00, 20, 'assets/products/iphone/iphone14_trang_256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10149, 1013, '1013-128GB-XANHDNG', 18990000.00, 20, 'assets/products/iphone/iphone14_xanhduong_256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10150, 1013, '1013-256GB-EN', 21990000.00, 20, 'assets/products/iphone/iphone14_den_256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10151, 1013, '1013-256GB-TRNG', 21990000.00, 20, 'assets/products/iphone/iphone14_trang_256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10152, 1013, '1013-256GB-XANHDNG', 21990000.00, 20, 'assets/products/iphone/iphone14_xanhduong_256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10153, 1013, '1013-512GB-EN', 26990000.00, 20, 'assets/products/iphone/iphone14_den_256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10154, 1013, '1013-512GB-TRNG', 26990000.00, 20, 'assets/products/iphone/iphone14_trang_256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10155, 1013, '1013-512GB-XANHDNG', 26990000.00, 20, 'assets/products/iphone/iphone14_xanhduong_256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10156, 1014, '1014-128GB-XANHDNG', 27990000.00, 20, 'assets/products/iphone/iphone13prm_xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10157, 1014, '1014-128GB-XM', 27990000.00, 20, 'assets/products/iphone/iphone13prm_xam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10158, 1014, '1014-128GB-XANHL', 27990000.00, 20, 'assets/products/iphone/iphone13prm_xanhla.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10159, 1014, '1014-128GB-BC', 27990000.00, 20, 'assets/products/iphone/iphone13prm_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10160, 1014, '1014-128GB-VNG', 27990000.00, 20, 'assets/products/iphone/iphone13prm_vangdong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10161, 1014, '1014-256GB-XANHDNG', 29990000.00, 20, 'assets/products/iphone/iphone13prm_xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10162, 1014, '1014-256GB-XM', 29990000.00, 20, 'assets/products/iphone/iphone13prm_xam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10163, 1014, '1014-256GB-XANHL', 29990000.00, 20, 'assets/products/iphone/iphone13prm_xanhla.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10164, 1014, '1014-256GB-BC', 29990000.00, 20, 'assets/products/iphone/iphone13prm_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10165, 1014, '1014-256GB-VNG', 29990000.00, 20, 'assets/products/iphone/iphone13prm_vangdong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10166, 1015, '1015-128GB-XANHL', 24990000.00, 20, 'assets/products/iphone/iphone13pro_xanhla.jpg', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10167, 1015, '1015-128GB-VNG', 24990000.00, 20, 'assets/products/iphone/iphone13pro_vangdong.webp', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10168, 1016, '1016-128GB-XANHL', 16990000.00, 20, 'assets/products/iphone/iphone13_xanhla_512v256.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10169, 1016, '1016-128GB-TRNG', 16990000.00, 20, 'assets/products/iphone/iphone13_trang_512v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10170, 1016, '1016-128GB-HNG', 16990000.00, 20, 'assets/products/iphone/iphone13_hong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10171, 1016, '1016-128GB-XANHDNG', 16990000.00, 20, 'assets/products/iphone/iphone13_xanhduong_512v256v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10172, 1016, '1016-128GB-', 16990000.00, 20, 'assets/products/iphone/iphone13_do.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10173, 1016, '1016-128GB-EN', 16990000.00, 20, 'assets/products/iphone/iphone13_den_512v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10174, 1016, '1016-256GB-XANHL', 19990000.00, 20, 'assets/products/iphone/iphone13_xanhla_512v256.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10175, 1016, '1016-256GB-TRNG', 19990000.00, 20, 'assets/products/iphone/iphone13_trang_512v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10176, 1016, '1016-256GB-HNG', 19990000.00, 20, 'assets/products/iphone/iphone13_hong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10177, 1016, '1016-512GB-', 23990000.00, 20, 'assets/products/iphone/iphone13_do.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10178, 1016, '1016-512GB-TRNG', 23990000.00, 20, 'assets/products/iphone/iphone13_trang_512v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10179, 1016, '1016-512GB-EN', 23990000.00, 20, 'assets/products/iphone/iphone13_den_512v128.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10180, 1017, '1017-128GB-XANHDNG', 24990000.00, 20, 'assets/products/iphone/iphone12prm_xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10181, 1017, '1017-128GB-VNG', 24990000.00, 20, 'assets/products/iphone/iphone12prm_vangdong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10182, 1017, '1017-128GB-BC', 24990000.00, 20, 'assets/products/iphone/iphone12prm_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10183, 1017, '1017-128GB-XM', 24990000.00, 20, 'assets/products/iphone/iphone12prm_xam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10184, 1017, '1017-256GB-XANHDNG', 27990000.00, 20, 'assets/products/iphone/iphone12prm_xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10185, 1017, '1017-256GB-VNG', 27990000.00, 20, 'assets/products/iphone/iphone12prm_vangdong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10186, 1017, '1017-256GB-BC', 27990000.00, 20, 'assets/products/iphone/iphone12prm_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10187, 1017, '1017-256GB-XM', 27990000.00, 20, 'assets/products/iphone/iphone12prm_xam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10188, 1018, '1018-128GB-XM', 21990000.00, 20, 'assets/products/iphone/iphone12pro_xam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10189, 1018, '1018-128GB-BC', 21990000.00, 20, 'assets/products/iphone/iphone12pro_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10190, 1018, '1018-128GB-VNG', 21990000.00, 20, 'assets/products/iphone/iphone12pro_vangdong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10191, 1018, '1018-128GB-XANHDNG', 21990000.00, 20, 'assets/products/iphone/iphone12pro_xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10192, 1018, '1018-256GB-XM', 24990000.00, 20, 'assets/products/iphone/iphone12pro_xam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10193, 1018, '1018-256GB-BC', 24990000.00, 20, 'assets/products/iphone/iphone12pro_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10194, 1018, '1018-256GB-VNG', 24990000.00, 20, 'assets/products/iphone/iphone12pro_vangdong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10195, 1018, '1018-256GB-XANHDNG', 24990000.00, 20, 'assets/products/iphone/iphone12pro_xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10196, 1018, '1018-512GB-XM', 29990000.00, 20, 'assets/products/iphone/iphone12pro_xam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10197, 1018, '1018-512GB-BC', 29990000.00, 20, 'assets/products/iphone/iphone12pro_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10198, 1018, '1018-512GB-VNG', 29990000.00, 20, 'assets/products/iphone/iphone12pro_vangdong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10199, 1018, '1018-512GB-XANHDNG', 29990000.00, 20, 'assets/products/iphone/iphone12pro_xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10200, 1019, '1019-64GB-EN', 16990000.00, 20, 'assets/products/iphone/iphone12_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10201, 1019, '1019-64GB-TRNG', 16990000.00, 20, 'assets/products/iphone/iphone12_trang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10202, 1019, '1019-64GB-XANHL', 16990000.00, 20, 'assets/products/iphone/iphone12_xanhla.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10203, 1019, '1019-64GB-TM', 16990000.00, 20, 'assets/products/iphone/iphone12_tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10204, 1019, '1019-128GB-EN', 18990000.00, 20, 'assets/products/iphone/iphone12_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10205, 1019, '1019-128GB-TRNG', 18990000.00, 20, 'assets/products/iphone/iphone12_trang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10206, 1019, '1019-128GB-XANHL', 18990000.00, 20, 'assets/products/iphone/iphone12_xanhla.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10207, 1019, '1019-128GB-TM', 18990000.00, 20, 'assets/products/iphone/iphone12_tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10208, 1019, '1019-256GB-EN', 21990000.00, 20, 'assets/products/iphone/iphone12_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10209, 1019, '1019-256GB-TRNG', 21990000.00, 20, 'assets/products/iphone/iphone12_trang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10210, 1019, '1019-256GB-XANHL', 21990000.00, 20, 'assets/products/iphone/iphone12_xanhla.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10211, 1019, '1019-256GB-TM', 21990000.00, 20, 'assets/products/iphone/iphone12_tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10212, 1020, '1020-64GB-ENXM', 16990000.00, 20, 'assets/products/ipad/ipad_AirM3_denxam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10213, 1020, '1020-64GB-XANHDNG', 16990000.00, 20, 'assets/products/iapd/ipad_AirM3_Xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10214, 1020, '1020-64GB-TM', 16990000.00, 20, 'assets/products/ipad/ipad_AirM3_Tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10215, 1020, '1020-64GB-TRNG', 16990000.00, 20, 'assets/products/ipad/ipad_AirM3_TrangStarlight.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10216, 1020, '1020-256GB-ENXM', 19990000.00, 20, 'assets/products/ipad/ipad_AirM3_denxam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10217, 1020, '1020-256GB-XANHDNG', 19990000.00, 20, 'assets/products/iapd/ipad_AirM3_Xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10218, 1020, '1020-256GB-TM', 19990000.00, 20, 'assets/products/ipad/ipad_AirM3_Tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10219, 1020, '1020-256GB-TRNG', 19990000.00, 20, 'assets/products/ipad/ipad_AirM3_TrangStarlight.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10220, 1021, '1021-64GB-BC', 12990000.00, 20, 'assets/products/ipad/ipad_10_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10221, 1021, '1021-64GB-XANHDNG', 12990000.00, 20, 'assets/products/ipad/ipad_10_Xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10222, 1021, '1021-64GB-HNG', 12990000.00, 20, 'assets/products/ipad/ipad_10_Hong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10223, 1021, '1021-64GB-VNG', 12990000.00, 20, 'assets/products/ipad/ipad_10_Vang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10224, 1021, '1021-256GB-BC', 15990000.00, 20, 'assets/products/ipad/ipad_10_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10225, 1021, '1021-256GB-XANHDNG', 15990000.00, 20, 'assets/products/ipad/ipad_10_Xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10226, 1021, '1021-256GB-HNG', 15990000.00, 20, 'assets/products/ipad/ipad_10_Hong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10227, 1021, '1021-256GB-VNG', 15990000.00, 20, 'assets/products/ipad/ipad_10_Vang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10228, 1022, '1022-256GB-EN', 30990000.00, 20, 'assets/products/ipad/ipad_proM4_den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10229, 1022, '1022-256GB-BC', 30990000.00, 20, 'assets/products/ipad/ipad_proM4_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10230, 1023, '1023-128GB-XANHDNG', 16990000.00, 20, 'assets/products/iapd/ipad_Air6M2_Xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10231, 1023, '1023-128GB-TM', 16990000.00, 20, 'assets/products/ipad/ipad_Air6M2_Tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10232, 1023, '1023-128GB-XM', 16990000.00, 20, 'assets/products/ipad/ipad_Air6M2_Xam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10233, 1023, '1023-128GB-TRNG', 16990000.00, 20, 'assets/products/ipad/ipad_Air6M2_TrangStarlight.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10234, 1024, '1024-64GB-XM', 12990000.00, 20, 'assets/products/ipad/ipad_mini_denxam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10235, 1024, '1024-64GB-XANHDNG', 12990000.00, 20, 'assets/products/iapd/ipad_mini_xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10236, 1024, '1024-64GB-TRNG', 12990000.00, 20, 'assets/products/ipad/ipad_mini_trangstarlight.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10237, 1024, '1024-64GB-TM', 12990000.00, 20, 'assets/products/ipad/ipad_mini_tim.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10238, 1025, '1025-64GB-BC', 8990000.00, 20, 'assets/products/ipad/ipad_9_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10239, 1026, '1026-64GB-BC', 10990000.00, 20, 'assets/products/ipad/ipad_10_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10240, 1026, '1026-64GB-VNG', 10990000.00, 20, 'assets/products/ipad/ipad_10_Vang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10241, 1026, '1026-256GB-BC', 14490000.00, 20, 'assets/products/ipad/ipad_10_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10242, 1026, '1026-256GB-VNG', 14490000.00, 20, 'assets/products/ipad/ipad_10_Vang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10243, 1027, '1027-256GB-XANHDATRI', 27990000.00, 20, 'assets/products/macbook/MacbookAir_Xanhdatroinhat', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10244, 1027, '1027-256GB-BC', 27990000.00, 20, 'assets/products/macbook/MacbookAir_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10245, 1027, '1027-256GB-VNG', 27990000.00, 20, 'assets/products/macbook/MacbookAir_Vang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10246, 1027, '1027-256GB-XANHEN', 27990000.00, 20, 'assets/products/macbook/MacbookAir_Xanhden.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10247, 1027, '1027-512GB-XANHDATRI', 32990000.00, 20, 'assets/products/macbook/MacbookAir_Xanhdatroinhat', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10248, 1027, '1027-512GB-BC', 32990000.00, 20, 'assets/products/macbook/MacbookAir_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10249, 1027, '1027-512GB-VNG', 32990000.00, 20, 'assets/products/ipad/MacbookAir_Vang.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10250, 1027, '1027-512GB-XANHEN', 32990000.00, 20, 'assets/products/macbook/MacbookAir_Xanhden.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10251, 1028, '1028-512GB-XM', 46990000.00, 20, 'assets/products/macbook/MacbookPro_Xam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10252, 1028, '1028-512GB-BC', 46990000.00, 20, 'assets/products/macbook/MacbookPro_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10253, 1028, '1028-512GB-EN', 46990000.00, 20, 'assets/products/macbook/MacbookPro_Den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10254, 1028, '1028-1TB-XM', 51990000.00, 20, 'assets/products/macbook/MacbookPro_Xam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10255, 1028, '1028-1TB-BC', 51990000.00, 20, 'assets/products/macbook/MacbookPro_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10256, 1028, '1028-1TB-EN', 51990000.00, 20, 'assets/products/macbook/MacbookPro_Den.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10257, 1029, '1029-256GB-XANHDNG', 35990000.00, 20, 'assets/products/macbook/iMac24_M3_Xanhduong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10258, 1029, '1029-256GB-HNG', 35990000.00, 20, 'assets/products/macbook/iMac24_M3_Hong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10259, 1030, '1030-256GB-BC', 14990000.00, 20, 'assets/products/macbook/Macmini_M4_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10260, 1030, '1030-512GB-BC', 17990000.00, 20, 'assets/products/macbook/Macmini_M4_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10261, 1031, '1031-1TB-XM', 87990000.00, 20, 'assets/products/macbook/MacStudio_M2Ultra.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10262, 1031, '1031-2TB-XM', 99990000.00, 20, 'assets/products/macbook/MacStudio_M2Ultra.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10263, 1032, '1032-41MM-BC', 10990000.00, 20, 'assets/products/watch/applewatch_series10_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10264, 1032, '1032-41MM-ENBNG', 17990000.00, 20, 'assets/products/watch/applewatch_series10_denbong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10265, 1032, '1032-41MM-VNGHNG', 11990000.00, 20, 'assets/products/watch/applewatch_series10_vanghong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10266, 1032, '1032-45MM-BC', 11990000.00, 20, 'assets/products/watch/applewatch_series10_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10267, 1032, '1032-45MM-ENBNG', 18990000.00, 20, 'assets/products/watch/applewatch_series10_denbong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10268, 1032, '1032-45MM-VNGHNG', 12990000.00, 20, 'assets/products/watch/applewatch_series10_vanghong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10269, 1033, '1033-49MM-ALPINE', 30990000.00, 20, 'assets/products/watch/applewatch_ultra2_dayalpine.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10270, 1033, '1033-49MM-TRAIL', 32990000.00, 20, 'assets/products/watch/applewatch_ultra2_daytrail.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10271, 1033, '1033-49MM-OCEAN', 34990000.00, 20, 'assets/products/watch/applewatch_ultra2_dayocean.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10272, 1034, '1034-41MM-', 9990000.00, 20, 'assets/products/watch/applewatch_series9_do.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10273, 1034, '1034-41MM-XANHEN', 16990000.00, 20, 'assets/products/watch/applewatch_series9_xanhdendam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10274, 1034, '1034-45MM-', 10990000.00, 20, 'assets/products/watch/applewatch_series9_do.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10275, 1034, '1034-45MM-XANHEN', 17990000.00, 20, 'assets/products/watch/applewatch_series9_xanhdendam.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10276, 1035, '1035-40MM-BC', 6990000.00, 20, 'assets/products/watch/applewatch_se2_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10277, 1035, '1035-40MM-XANHEN', 10990000.00, 20, 'assets/products/watch/applewatch_se2_xanhden.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10278, 1035, '1035-40MM-TRNG', 7490000.00, 20, 'assets/products/watch/applewatch_se2_trangstarlight.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10279, 1035, '1035-44MM-BC', 7990000.00, 20, 'assets/products/watch/applewatch_se2_bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10280, 1035, '1035-44MM-XANHEN', 11990000.00, 20, 'assets/products/watch/applewatch_se2_xanhden.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10281, 1035, '1035-44MM-TRNG', 8490000.00, 20, 'assets/products/watch/applewatch_se2_trangstarlight.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10282, 1036, '1036-STANDARD-TRNG', 390000.00, 20, 'assets/products/tainghe/Earpods_lightning.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10283, 1037, '1037-STANDARD-TRNG', 450000.00, 20, 'assets/products/tainghe/earpods_usb_c.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10284, 1038, '1038-STANDARD-TRNG', 3990000.00, 20, 'assets/products/tainghe/Airpod3_lightning.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10285, 1039, '1039-STANDARD-TRNG', 6990000.00, 20, 'assets/products/tainghe/Airpods_pro_usb_c.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10286, 1040, '1040-STANDARD-BC', 15990000.00, 20, 'assets/products/tainghe/AirpodsMax_Bac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10287, 1040, '1040-STANDARD-HNG', 15990000.00, 20, 'assets/products/tainghe/AirpodsMax_Hong.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10288, 1041, '1041-STANDARD-TRNG', 4990000.00, 20, 'assets/products/tainghe/Airpods4_chongon.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10289, 1042, '1042-STANDARD-WHITE', 590000.00, 20, 'assets/products/phukien/Adapter_sacusbC.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10290, 1043, '1043-STANDARD-SILVER', 790000.00, 20, 'assets/products/phukien/Airtag.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10291, 1044, '1044-STANDARD-WHITE', 3290000.00, 20, 'assets/products/phukien/apple_pencilpro.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10292, 1045, '1045-STANDARD-PINK', 490000.00, 20, 'assets/products/phukien/bandichuot.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10293, 1046, '1046-STANDARD-GRAY', 990000.00, 20, 'assets/products/phukien/baodaIpad.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10294, 1047, '1047-STANDARD-BLACK', 290000.00, 20, 'assets/products/phukien/cap_typeC.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10295, 1048, '1048-STANDARD-BLACK', 690000.00, 20, 'assets/products/phukien/capsac_typeC.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10296, 1049, '1049-STANDARD-PINK', 390000.00, 20, 'assets/products/phukien/chuotlaptop.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10297, 1050, '1050-STANDARD-CLEAR', 290000.00, 20, 'assets/products/phukien/cuongluc_iPadAir.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10298, 1051, '1051-STANDARD-CLEAR', 350000.00, 20, 'assets/products/phukien/cuongluc_iPadPro.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10299, 1052, '1052-STANDARD-CLEAR', 200000.00, 20, 'assets/products/phukien/cuonglucAppleWatch.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10300, 1053, '1053-STANDARD-CLEAR', 300000.00, 20, 'assets/products/phukien/cuonglucIphone.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10301, 1054, '1054-STANDARD-CLEAR', 500000.00, 20, 'assets/products/phukien/cuonglucMac.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10302, 1055, '1055-STANDARD-PINK', 790000.00, 20, 'assets/products/phukien/daycaosuAppleWatch.png', '2025-07-21 11:17:36', '2025-07-21 11:17:36', 1),
+(10303, 1056, '1056-STANDARD-BROWN', 890000.00, 20, 'assets/products/phukien/dayNylonAppleWatch.png', '2025-07-21 11:17:37', '2025-07-21 11:17:37', 1),
+(10304, 1057, '1057-STANDARD-BLACK', 690000.00, 20, 'assets/products/phukien/daysiliconeAppleWatch.png', '2025-07-21 11:17:37', '2025-07-21 11:17:37', 1),
+(10305, 1058, '1058-STANDARD-SILVER', 1490000.00, 20, 'assets/products/phukien/daythepkhonggiAppleWatch.png', '2025-07-21 11:17:37', '2025-07-21 11:17:37', 1),
+(10306, 1059, '1059-STANDARD-WHITE', 990000.00, 20, 'assets/products/phukien/desackhongday_TypeC.png', '2025-07-21 11:17:37', '2025-07-21 11:17:37', 1),
+(10307, 1060, '1060-STANDARD-SILVER', 490000.00, 20, 'assets/products/phukien/GiadoLaptop.png', '2025-07-21 11:17:37', '2025-07-21 11:17:37', 1),
+(10308, 1061, '1061-STANDARD-WHITE', 2990000.00, 20, 'assets/products/phukien/MagicKeyboard.png', '2025-07-21 11:17:37', '2025-07-21 11:17:37', 1),
+(10309, 1062, '1062-STANDARD-CLEAR', 200000.00, 20, 'assets/products/phukien/OpAppleWatch.png', '2025-07-21 11:17:37', '2025-07-21 11:17:37', 1),
+(10310, 1063, '1063-STANDARD-BLACK', 2490000.00, 20, 'assets/products/phukien/thietbicamtaychongrung.png', '2025-07-21 11:17:37', '2025-07-21 11:17:37', 1),
+(10311, 1064, '1064-STANDARD-BLACK', 1990000.00, 20, 'assets/products/phukien/thuam.png', '2025-07-21 11:17:37', '2025-07-21 11:17:37', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `product_variant_attribute_links`
+--
+
+CREATE TABLE `product_variant_attribute_links` (
+  `variant_id` int(11) NOT NULL,
+  `attribute_value_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `product_variant_attribute_links`
+--
+
+INSERT INTO `product_variant_attribute_links` (`variant_id`, `attribute_value_id`) VALUES
+(10001, 1001),
+(10001, 2001),
+(10002, 1001),
+(10002, 2002),
+(10003, 1001),
+(10003, 2003),
+(10004, 1001),
+(10004, 2004),
+(10005, 1002),
+(10005, 2001),
+(10006, 1002),
+(10006, 2002),
+(10007, 1002),
+(10007, 2003),
+(10008, 1002),
+(10008, 2004),
+(10009, 1003),
+(10009, 2001),
+(10010, 1003),
+(10010, 2002),
+(10011, 1003),
+(10011, 2003),
+(10012, 1003),
+(10012, 2004),
+(10013, 1004),
+(10013, 2001),
+(10014, 1004),
+(10014, 2002),
+(10015, 1004),
+(10015, 2003),
+(10016, 1004),
+(10016, 2004),
+(10017, 1001),
+(10017, 2001),
+(10018, 1001),
+(10018, 2002),
+(10019, 1001),
+(10019, 2003),
+(10020, 1001),
+(10020, 2004),
+(10021, 1002),
+(10021, 2001),
+(10022, 1002),
+(10022, 2002),
+(10023, 1002),
+(10023, 2003),
+(10024, 1002),
+(10024, 2004),
+(10025, 1003),
+(10025, 2001),
+(10026, 1003),
+(10026, 2002),
+(10027, 1003),
+(10027, 2003),
+(10028, 1003),
+(10028, 2004),
+(10029, 1004),
+(10029, 2005),
+(10030, 1004),
+(10030, 2006),
+(10031, 1004),
+(10031, 2007),
+(10032, 1004),
+(10032, 2008),
+(10033, 1004),
+(10033, 2009),
+(10034, 1001),
+(10034, 2005),
+(10035, 1001),
+(10035, 2006),
+(10036, 1001),
+(10036, 2007),
+(10037, 1001),
+(10037, 2008),
+(10038, 1001),
+(10038, 2009),
+(10039, 1002),
+(10039, 2005),
+(10040, 1002),
+(10040, 2006),
+(10041, 1002),
+(10041, 2007),
+(10042, 1002),
+(10042, 2008),
+(10043, 1002),
+(10043, 2009),
+(10044, 1004),
+(10044, 2005),
+(10045, 1004),
+(10045, 2006),
+(10046, 1004),
+(10046, 2007),
+(10047, 1004),
+(10047, 2008),
+(10048, 1004),
+(10048, 2009),
+(10049, 1001),
+(10049, 2005),
+(10050, 1001),
+(10050, 2006),
+(10051, 1001),
+(10051, 2007),
+(10052, 1001),
+(10052, 2008),
+(10053, 1001),
+(10053, 2009),
+(10054, 1002),
+(10054, 2005),
+(10055, 1002),
+(10055, 2006),
+(10056, 1002),
+(10056, 2007),
+(10057, 1002),
+(10057, 2008),
+(10058, 1002),
+(10058, 2009),
+(10059, 1004),
+(10059, 2006),
+(10060, 1004),
+(10060, 2005),
+(10061, 1001),
+(10061, 2006),
+(10062, 1001),
+(10062, 2005),
+(10063, 1001),
+(10063, 2001),
+(10064, 1001),
+(10064, 2002),
+(10065, 1001),
+(10065, 2003),
+(10066, 1001),
+(10066, 2010),
+(10067, 1002),
+(10067, 2001),
+(10068, 1002),
+(10068, 2002),
+(10069, 1002),
+(10069, 2003),
+(10070, 1002),
+(10070, 2010),
+(10071, 1003),
+(10071, 2001),
+(10072, 1003),
+(10072, 2002),
+(10073, 1003),
+(10073, 2003),
+(10074, 1003),
+(10074, 2010),
+(10075, 1004),
+(10075, 2001),
+(10076, 1004),
+(10076, 2002),
+(10077, 1004),
+(10077, 2003),
+(10078, 1004),
+(10078, 2010),
+(10079, 1001),
+(10079, 2001),
+(10080, 1001),
+(10080, 2002),
+(10081, 1001),
+(10081, 2003),
+(10082, 1001),
+(10082, 2010),
+(10083, 1002),
+(10083, 2001),
+(10084, 1002),
+(10084, 2002),
+(10085, 1002),
+(10085, 2003),
+(10086, 1002),
+(10086, 2010),
+(10087, 1003),
+(10087, 2001),
+(10088, 1003),
+(10088, 2002),
+(10089, 1003),
+(10089, 2003),
+(10090, 1003),
+(10090, 2010),
+(10091, 1004),
+(10091, 2005),
+(10092, 1004),
+(10092, 2011),
+(10093, 1004),
+(10093, 2007),
+(10094, 1004),
+(10094, 2012),
+(10095, 1004),
+(10095, 2013),
+(10096, 1001),
+(10096, 2005),
+(10097, 1001),
+(10097, 2011),
+(10098, 1001),
+(10098, 2007),
+(10099, 1001),
+(10099, 2012),
+(10100, 1001),
+(10100, 2013),
+(10101, 1002),
+(10101, 2005),
+(10102, 1002),
+(10102, 2011),
+(10103, 1002),
+(10103, 2007),
+(10104, 1002),
+(10104, 2012),
+(10105, 1002),
+(10105, 2013),
+(10106, 1004),
+(10106, 2005),
+(10107, 1004),
+(10107, 2011),
+(10108, 1004),
+(10108, 2007),
+(10109, 1004),
+(10109, 2012),
+(10110, 1004),
+(10110, 2013),
+(10111, 1001),
+(10111, 2005),
+(10112, 1001),
+(10112, 2011),
+(10113, 1001),
+(10113, 2007),
+(10114, 1001),
+(10114, 2012),
+(10115, 1001),
+(10115, 2013),
+(10116, 1002),
+(10116, 2005),
+(10117, 1002),
+(10117, 2011),
+(10118, 1002),
+(10118, 2007),
+(10119, 1002),
+(10119, 2012),
+(10120, 1002),
+(10120, 2013),
+(10121, 1004),
+(10121, 2005),
+(10122, 1004),
+(10122, 2014),
+(10123, 1004),
+(10123, 2012),
+(10124, 1004),
+(10124, 2015),
+(10125, 1001),
+(10125, 2005),
+(10126, 1001),
+(10126, 2014),
+(10127, 1001),
+(10127, 2012),
+(10128, 1001),
+(10128, 2015),
+(10129, 1004),
+(10129, 2005),
+(10130, 1004),
+(10130, 2014),
+(10131, 1004),
+(10131, 2012),
+(10132, 1004),
+(10132, 2015),
+(10133, 1001),
+(10133, 2005),
+(10134, 1001),
+(10134, 2014),
+(10135, 1001),
+(10135, 2012),
+(10136, 1001),
+(10136, 2015),
+(10137, 1004),
+(10137, 2005),
+(10138, 1004),
+(10138, 2006),
+(10139, 1004),
+(10139, 2016),
+(10140, 1004),
+(10140, 2015),
+(10141, 1004),
+(10141, 2013),
+(10142, 1001),
+(10142, 2005),
+(10143, 1001),
+(10143, 2006),
+(10144, 1001),
+(10144, 2016),
+(10145, 1001),
+(10145, 2015),
+(10146, 1001),
+(10146, 2013),
+(10147, 1004),
+(10147, 2005),
+(10148, 1004),
+(10148, 2006),
+(10149, 1004),
+(10149, 2013),
+(10150, 1001),
+(10150, 2005),
+(10151, 1001),
+(10151, 2006),
+(10152, 1001),
+(10152, 2013),
+(10153, 1002),
+(10153, 2005),
+(10154, 1002),
+(10154, 2006),
+(10155, 1002),
+(10155, 2013),
+(10156, 1004),
+(10156, 2013),
+(10157, 1004),
+(10157, 2017),
+(10158, 1004),
+(10158, 2018),
+(10159, 1004),
+(10159, 2014),
+(10160, 1004),
+(10160, 2012),
+(10161, 1001),
+(10161, 2013),
+(10162, 1001),
+(10162, 2017),
+(10163, 1001),
+(10163, 2018),
+(10164, 1001),
+(10164, 2014),
+(10165, 1001),
+(10165, 2012),
+(10166, 1004),
+(10166, 2011),
+(10167, 1004),
+(10167, 2012),
+(10168, 1004),
+(10168, 2011),
+(10169, 1004),
+(10169, 2006),
+(10170, 1004),
+(10170, 2007),
+(10171, 1004),
+(10171, 2013),
+(10172, 1004),
+(10172, 2016),
+(10173, 1004),
+(10173, 2005),
+(10174, 1001),
+(10174, 2011),
+(10175, 1001),
+(10175, 2006),
+(10176, 1001),
+(10176, 2007),
+(10177, 1002),
+(10177, 2016),
+(10178, 1002),
+(10178, 2006),
+(10179, 1002),
+(10179, 2005),
+(10180, 1004),
+(10180, 2013),
+(10181, 1004),
+(10181, 2012),
+(10182, 1004),
+(10182, 2014),
+(10183, 1004),
+(10183, 2017),
+(10184, 1001),
+(10184, 2013),
+(10185, 1001),
+(10185, 2012),
+(10186, 1001),
+(10186, 2014),
+(10187, 1001),
+(10187, 2017),
+(10188, 1004),
+(10188, 2017),
+(10189, 1004),
+(10189, 2014),
+(10190, 1004),
+(10190, 2012),
+(10191, 1004),
+(10191, 2013),
+(10192, 1001),
+(10192, 2017),
+(10193, 1001),
+(10193, 2014),
+(10194, 1001),
+(10194, 2012),
+(10195, 1001),
+(10195, 2013),
+(10196, 1002),
+(10196, 2017),
+(10197, 1002),
+(10197, 2014),
+(10198, 1002),
+(10198, 2012),
+(10199, 1002),
+(10199, 2013),
+(10200, 1005),
+(10200, 2005),
+(10201, 1005),
+(10201, 2006),
+(10202, 1005),
+(10202, 2011),
+(10203, 1005),
+(10203, 2015),
+(10204, 1004),
+(10204, 2005),
+(10205, 1004),
+(10205, 2006),
+(10206, 1004),
+(10206, 2011),
+(10207, 1004),
+(10207, 2015),
+(10208, 1001),
+(10208, 2005),
+(10209, 1001),
+(10209, 2006),
+(10210, 1001),
+(10210, 2011),
+(10211, 1001),
+(10211, 2015),
+(10212, 1005),
+(10212, 2019),
+(10213, 1005),
+(10213, 2013),
+(10214, 1005),
+(10214, 2015),
+(10215, 1005),
+(10215, 2006),
+(10216, 1001),
+(10216, 2019),
+(10217, 1001),
+(10217, 2013),
+(10218, 1001),
+(10218, 2015),
+(10219, 1001),
+(10219, 2006),
+(10220, 1005),
+(10220, 2014),
+(10221, 1005),
+(10221, 2013),
+(10222, 1005),
+(10222, 2007),
+(10223, 1005),
+(10223, 2012),
+(10224, 1001),
+(10224, 2014),
+(10225, 1001),
+(10225, 2013),
+(10226, 1001),
+(10226, 2007),
+(10227, 1001),
+(10227, 2012),
+(10228, 1001),
+(10228, 2005),
+(10229, 1001),
+(10229, 2014),
+(10230, 1004),
+(10230, 2013),
+(10231, 1004),
+(10231, 2015),
+(10232, 1004),
+(10232, 2017),
+(10233, 1004),
+(10233, 2006),
+(10234, 1005),
+(10234, 2017),
+(10235, 1005),
+(10235, 2013),
+(10236, 1005),
+(10236, 2006),
+(10237, 1005),
+(10237, 2015),
+(10238, 1005),
+(10238, 2014),
+(10239, 1005),
+(10239, 2014),
+(10240, 1005),
+(10240, 2012),
+(10241, 1001),
+(10241, 2014),
+(10242, 1001),
+(10242, 2012),
+(10243, 1001),
+(10243, 2020),
+(10244, 1001),
+(10244, 2014),
+(10245, 1001),
+(10245, 2012),
+(10246, 1001),
+(10246, 2021),
+(10247, 1002),
+(10247, 2020),
+(10248, 1002),
+(10248, 2014),
+(10249, 1002),
+(10249, 2012),
+(10250, 1002),
+(10250, 2021),
+(10251, 1002),
+(10251, 2017),
+(10252, 1002),
+(10252, 2014),
+(10253, 1002),
+(10253, 2005),
+(10254, 1003),
+(10254, 2017),
+(10255, 1003),
+(10255, 2014),
+(10256, 1003),
+(10256, 2005),
+(10257, 1001),
+(10257, 2013),
+(10258, 1001),
+(10258, 2007),
+(10259, 1001),
+(10259, 2014),
+(10260, 1002),
+(10260, 2014),
+(10261, 1003),
+(10261, 2017),
+(10262, 1006),
+(10262, 2017),
+(10263, 1007),
+(10263, 2014),
+(10264, 1007),
+(10264, 2022),
+(10265, 1007),
+(10265, 2023),
+(10266, 1008),
+(10266, 2014),
+(10267, 1008),
+(10267, 2022),
+(10268, 1008),
+(10268, 2023),
+(10269, 1009),
+(10269, 2024),
+(10270, 1009),
+(10270, 2025),
+(10271, 1009),
+(10271, 2026),
+(10272, 1007),
+(10272, 2016),
+(10273, 1007),
+(10273, 2027),
+(10274, 1008),
+(10274, 2016),
+(10275, 1008),
+(10275, 2027),
+(10276, 1010),
+(10276, 2014),
+(10277, 1010),
+(10277, 2027),
+(10278, 1010),
+(10278, 2006),
+(10279, 1011),
+(10279, 2014),
+(10280, 1011),
+(10280, 2027),
+(10281, 1011),
+(10281, 2006),
+(10282, 1012),
+(10282, 2006),
+(10283, 1012),
+(10283, 2006),
+(10284, 1012),
+(10284, 2006),
+(10285, 1012),
+(10285, 2006),
+(10286, 1012),
+(10286, 2014),
+(10287, 1012),
+(10287, 2007),
+(10288, 1012),
+(10288, 2006),
+(10289, 1013),
+(10289, 2028),
+(10290, 1013),
+(10290, 2029),
+(10291, 1013),
+(10291, 2028),
+(10292, 1013),
+(10292, 2030),
+(10293, 1013),
+(10293, 2031),
+(10294, 1013),
+(10294, 2032),
+(10295, 1013),
+(10295, 2032),
+(10296, 1013),
+(10296, 2030),
+(10297, 1013),
+(10297, 2033),
+(10298, 1013),
+(10298, 2033),
+(10299, 1013),
+(10299, 2033),
+(10300, 1013),
+(10300, 2033),
+(10301, 1013),
+(10301, 2033),
+(10302, 1013),
+(10302, 2030),
+(10303, 1013),
+(10303, 2034),
+(10304, 1013),
+(10304, 2032),
+(10305, 1013),
+(10305, 2029),
+(10306, 1013),
+(10306, 2028),
+(10307, 1013),
+(10307, 2029),
+(10308, 1013),
+(10308, 2028),
+(10309, 1013),
+(10309, 2033),
+(10310, 1013),
+(10310, 2032),
+(10311, 1013),
+(10311, 2032);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `purchase_items`
+--
+
+CREATE TABLE `purchase_items` (
+  `id` int(11) NOT NULL,
+  `purchase_order_id` int(11) NOT NULL,
+  `variant_id` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `price` decimal(10,2) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `purchase_orders`
+--
+
+CREATE TABLE `purchase_orders` (
+  `id` int(11) NOT NULL,
+  `supplier_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `order_date` timestamp NULL DEFAULT current_timestamp(),
+  `total_amount` decimal(10,2) NOT NULL,
+  `status` varchar(50) DEFAULT 'Pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `purchase_orders`
+--
+
+INSERT INTO `purchase_orders` (`id`, `supplier_id`, `user_id`, `order_date`, `total_amount`, `status`) VALUES
+(1, 1, 3, '2025-07-22 17:00:00', 39990000.00, 'processing'),
+(2, 1, 3, '2025-07-22 17:00:00', 39990000.00, 'processing');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `suppliers`
+--
+
+CREATE TABLE `suppliers` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `contact_person` varchar(255) DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `suppliers`
+--
+
+INSERT INTO `suppliers` (`id`, `name`, `contact_person`, `phone`, `email`, `address`) VALUES
+(1, 'Apple Inc.', 'Tim Cook', '+1-800-275-2273', 'support@apple.com', 'One Apple Park Way, Cupertino, CA 95014, USA');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `password` varchar(255) NOT NULL COMMENT 'Hashed password',
+  `email` varchar(255) NOT NULL,
+  `role` varchar(50) DEFAULT 'customer',
+  `verify_token` varchar(64) DEFAULT NULL,
+  `verify_token_expires_at` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `last_login` timestamp NULL DEFAULT NULL,
+  `is_verified` tinyint(1) NOT NULL DEFAULT 0,
+  `is_updated` tinyint(1) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `password`, `email`, `role`, `verify_token`, `verify_token_expires_at`, `created_at`, `last_login`, `is_verified`, `is_updated`) VALUES
+(1, '$2y$10$w82d/P2P7JcE3S2H2p0L5u/N5X6A0L2F5M0N0Q5R2S3T0U4V5W6X7Y8Z9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z0', 'admin@example.com', 'customer', NULL, NULL, '2023-10-26 10:00:00', '2024-07-15 16:34:40', 1, 0),
+(2, '$2y$10$w82d/P2P7JcE3S2H2p0L5u/N5X6A0L2F5M0N0Q5R2S3T0U4V5W6X7Y8Z9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z0', 'customer1@example.com', 'customer', NULL, NULL, '2023-10-26 10:05:00', '2024-07-15 16:34:40', 1, 0),
+(3, '$2y$10$cGlSJlSkn.zGetksDct3YuYiCafOtPDlxspu2wkb6/Qm/4kmOqhd6', 'hoangquangdat182005@gmail.com', 'admin', NULL, NULL, '2025-07-17 06:54:17', NULL, 1, 1),
+(4, '123', 'khachhang1@example.com', 'customer', NULL, NULL, '2025-07-17 07:30:49', NULL, 1, 0),
+(5, '$2y$10$qcVQYH4IX/6XuEyouLtmKehslOa9T/UzgO0xI04LJtHOHVcKUMzGa', '26a4040725@hvnh.edu.vn', 'admin', '959b4b30ec9febe70c06cffda72dd53822c7abadbafaa272b4c0ffe8cb1a07c0', '2025-07-18 18:17:42', '2025-07-17 16:17:42', NULL, 1, 1),
+(7, '$2y$10$DX8t3m.D0XEnt8o86pGkbu0MCQfHUSwOYmC7GHrkF5lxT/vjVMErq', 'kiogit30@gmail.com', 'customer', 'd0b40fa82cb757c3bbf2348d4b15a4b3bda90ce31b704460808059e6b65e55bc', '2025-07-19 12:48:13', '2025-07-18 10:48:13', NULL, 1, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_detail`
+--
+
+CREATE TABLE `user_detail` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `first_name` varchar(100) DEFAULT NULL,
+  `last_name` varchar(100) DEFAULT NULL,
+  `avatar` varchar(255) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `phone_number` varchar(20) DEFAULT NULL,
+  `gender` varchar(10) DEFAULT NULL,
+  `date_of_birth` date DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `user_detail`
+--
+
+INSERT INTO `user_detail` (`id`, `user_id`, `first_name`, `last_name`, `avatar`, `address`, `phone_number`, `gender`, `date_of_birth`) VALUES
+(1, 3, 'Hoàng Quang', 'Đạt', 'assets/avatars/user_3_1752768743.png', 'xã HNN', '0127865412', 'male', '2005-08-01'),
+(2, 4, 'Nguyen', 'Van A', NULL, 'Ha Noi', '0123456789', NULL, NULL),
+(3, 5, 'Hoàng Quang', 'Đạt', 'assets/avatars/user_5_1752769245.png', 'xã Chí Minh, tỉnh Hưng Yên', '0827925712', 'male', '2005-08-01'),
+(4, 7, 'Hoa', 'Quý', NULL, 'Nhà giàu nhất Kim Bôi rồi', '0127865412', 'female', '2005-03-26');
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `product_variants`
+--
+ALTER TABLE `product_variants`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `variant_code` (`variant_code`),
+  ADD KEY `product_id` (`product_id`),
+  ADD KEY `idx_product_variants_product_id` (`product_id`),
+  ADD KEY `idx_product_variants_status` (`status`);
+
+--
+-- Indexes for table `purchase_items`
+--
+ALTER TABLE `purchase_items`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `purchase_order_id` (`purchase_order_id`),
+  ADD KEY `fk_purchase_items_variant` (`variant_id`);
+
+--
+-- Indexes for table `purchase_orders`
+--
+ALTER TABLE `purchase_orders`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `supplier_id` (`supplier_id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `suppliers`
+--
+ALTER TABLE `suppliers`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `email` (`email`);
+
+--
+-- Indexes for table `user_detail`
+--
+ALTER TABLE `user_detail`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_id` (`user_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `product_variants`
+--
+ALTER TABLE `product_variants`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10312;
+
+--
+-- AUTO_INCREMENT for table `purchase_items`
+--
+ALTER TABLE `purchase_items`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `purchase_orders`
+--
+ALTER TABLE `purchase_orders`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `suppliers`
+--
+ALTER TABLE `suppliers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `user_detail`
+--
+ALTER TABLE `user_detail`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `product_variants`
+--
+ALTER TABLE `product_variants`
+  ADD CONSTRAINT `product_variants_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `purchase_items`
+--
+ALTER TABLE `purchase_items`
+  ADD CONSTRAINT `fk_purchase_items_variant` FOREIGN KEY (`variant_id`) REFERENCES `product_variants` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `purchase_items_ibfk_1` FOREIGN KEY (`purchase_order_id`) REFERENCES `purchase_orders` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `purchase_orders`
+--
+ALTER TABLE `purchase_orders`
+  ADD CONSTRAINT `purchase_orders_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`),
+  ADD CONSTRAINT `purchase_orders_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+
+--
+-- Constraints for table `user_detail`
+--
+ALTER TABLE `user_detail`
+  ADD CONSTRAINT `user_detail_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

@@ -6,7 +6,7 @@ require 'vendor/autoload.php';
 
 function send_verification_email($email, $verify_token) {
     $site_name = "Anh Em Rọt Store";
-    $site_url = "http://localhost/Apple_Shop"; // Cập nhật domain thực tế
+    $site_url = "http://localhost/apple_store";
     $verify_url = $site_url . "/verify_email.php?token=" . $verify_token;
     
     $subject = "Xác thực tài khoản - " . $site_name;
@@ -65,21 +65,18 @@ function send_verification_email($email, $verify_token) {
 
     $mail = new PHPMailer(true);
     try {
-        // Cấu hình SMTP
         $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com'; // Hoặc dịch vụ SMTP khác
+        $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
-        $mail->Username = 'dathoami2k5@gmail.com'; // Thay bằng email của bạn
-        $mail->Password = 'pmmy ddcn xulj ruvb'; // Thay bằng mật khẩu ứng dụng
+        $mail->Username = 'dathoami2k5@gmail.com';
+        $mail->Password = 'pmmy ddcn xulj ruvb';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
 
-        // Thiết lập thông tin người gửi và người nhận
-        $mail->setFrom('noreply@yourdomain.com', $site_name);
+        $mail->setFrom('noreply.anhemrotstore@gmail.com', $site_name);
         $mail->addAddress($email);
-        $mail->addReplyTo('support@yourdomain.com', 'Hỗ trợ');
+        $mail->addReplyTo('hotro.anhemrotstore@gmail.com', 'Hỗ trợ');
 
-        // Cấu hình email
         $mail->isHTML(true);
         $mail->CharSet = 'UTF-8';
         $mail->Subject = $subject;
@@ -96,7 +93,6 @@ function send_verification_email($email, $verify_token) {
 function resend_verification_email($email) {
     global $conn;
 
-    // Giới hạn gửi lại email
     if (!isset($_SESSION['resend_attempts'])) {
         $_SESSION['resend_attempts'] = 0;
         $_SESSION['resend_last_attempt'] = time();
@@ -107,7 +103,6 @@ function resend_verification_email($email) {
     $_SESSION['resend_attempts']++;
     $_SESSION['resend_last_attempt'] = time();
 
-    // Kiểm tra email
     $stmt = $conn->prepare("SELECT id, verify_token, is_verified FROM users WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
@@ -121,7 +116,6 @@ function resend_verification_email($email) {
             return array('success' => false, 'message' => 'Email đã được xác thực trước đó.');
         }
 
-        // Tạo token mới nếu cần
         if (empty($verify_token)) {
             $verify_token = bin2hex(random_bytes(32));
             $verify_token_expires_at = date('Y-m-d H:i:s', strtotime('+24 hours'));
@@ -131,17 +125,16 @@ function resend_verification_email($email) {
             $update_stmt->close();
         }
 
-        // Gửi email
         if (send_verification_email($email, $verify_token)) {
-            $_SESSION['resend_attempts'] = 0; // Đặt lại số lần thử
+            $_SESSION['resend_attempts'] = 0;
             return array('success' => true, 'message' => 'Email xác thực đã được gửi lại. Vui lòng kiểm tra email (bao gồm thư mục spam/thư rác).');
         } else {
             return array('success' => false, 'message' => 'Có lỗi khi gửi email. Vui lòng thử lại.');
         }
     } else {
+        $stmt->close();
         return array('success' => false, 'message' => 'Email không tồn tại.');
     }
-    $stmt->close();
 }
 
 if (isset($_GET['resend'])) {
@@ -175,7 +168,6 @@ if (isset($_GET['resend'])) {
 </head>
 <body>
     <?php include 'includes/header.php'; ?>
-    
     <main class="container">
         <div class="auth-container">
             <div class="auth-header">
@@ -200,15 +192,12 @@ if (isset($_GET['resend'])) {
                     <i class="fas fa-paper-plane"></i> Gửi lại email xác thực
                 </button>
             </form>
-            
             <div class="auth-footer">
                 <a href="login.php" class="form-link">Quay lại đăng nhập</a>
             </div>
         </div>
     </main>
-    
     <?php include 'includes/footer.php'; ?>
-    
     <script>
         document.querySelector('.auth-form').addEventListener('submit', function() {
             document.querySelector('.auth-button').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';

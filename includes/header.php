@@ -1,7 +1,4 @@
 <?php
-// if (session_status() === PHP_SESSION_NONE) {
-//     session_start();
-// }
 require_once $_SERVER['DOCUMENT_ROOT'] . '/Apple_Shop/config/db.php';
 
 $is_admin_page = strpos($_SERVER['REQUEST_URI'], '/admin/') !== false;
@@ -11,6 +8,7 @@ if ($is_admin_page && isset($_SESSION['role']) && $_SESSION['role'] === 'admin')
     return;
 }
 
+// Ảnh đại diện mặc định
 $user_avatar = '/Apple_Shop/assets/logo/default_avatar.png';
 $user_full_name = 'Tài khoản';
 $is_user_logged_in = false;
@@ -18,35 +16,50 @@ $is_user_logged_in = false;
 if (isset($_SESSION['user_id'])) {
     $is_user_logged_in = true;
     $user_id = $_SESSION['user_id'];
-    $stmt = $conn->prepare("
-        SELECT u.full_name, ud.avatar
-        FROM users u
-        LEFT JOIN user_detail ud ON u.id = ud.user_id
-        WHERE u.id = ?
-    ");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($user_data = $result->fetch_assoc()) {
-        $user_full_name = htmlspecialchars($user_data['full_name']);
-        if (!empty($user_data['avatar']) && file_exists($_SERVER['DOCUMENT_ROOT'] . $user_data['avatar'])) {
-            $user_avatar = htmlspecialchars($user_data['avatar']);
-        }
+    // Kiểm tra trạng thái kết nối
+    if (!$conn->ping()) {
+        require_once $_SERVER['DOCUMENT_ROOT'] . '/Apple_Shop/config/db.php';
     }
-    $stmt->close();
+    $stmt = $conn->prepare("
+        SELECT ud.first_name, ud.last_name, ud.avatar
+        FROM user_detail ud
+        WHERE ud.user_id = ?
+    ");
+    if (!$stmt) {
+        error_log("Prepare failed in header.php: " . $conn->error);
+        // Tiếp tục với giá trị mặc định nếu truy vấn thất bại
+    } else {
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($user_data = $result->fetch_assoc()) {
+            $user_full_name = htmlspecialchars(trim($user_data['first_name'] . ' ' . $user_data['last_name']));
+            if (!empty($user_data['avatar']) && file_exists(__DIR__ . '/../' . $user_data['avatar'])) {
+                $user_avatar = '/' . htmlspecialchars($user_data['avatar']);
+            }
+        }
+        $stmt->close();
+    }
 }
 
 // Lấy số lượng sản phẩm trong giỏ hàng
 $cart_count = 0;
 if ($is_user_logged_in) {
-    $stmt = $conn->prepare("SELECT SUM(quantity) as total FROM cart WHERE user_id = ?");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($cart_data = $result->fetch_assoc()) {
-        $cart_count = (int)$cart_data['total'];
+    if (!$conn->ping()) {
+        require_once $_SERVER['DOCUMENT_ROOT'] . '/Apple_Shop/config/db.php';
     }
-    $stmt->close();
+    $stmt = $conn->prepare("SELECT SUM(quantity) as total FROM cart WHERE user_id = ?");
+    if (!$stmt) {
+        error_log("Prepare failed for cart count in header.php: " . $conn->error);
+    } else {
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($cart_data = $result->fetch_assoc()) {
+            $cart_count = (int)($cart_data['total'] ?? 0);
+        }
+        $stmt->close();
+    }
 }
 ?>
 
@@ -102,7 +115,7 @@ if ($is_user_logged_in) {
                                 <span class="user-name"><?= htmlspecialchars($user_full_name) ?></span>
                             </a>
                             <div class="user-dropdown-menu" id="user-dropdown-menu">
-                                <a href="/Apple_Shop/profile.php">👤 Thông tin cá nhân</a>
+                                <a href="/Apple_Shop/update_profile.php">👤 Thông tin cá nhân</a>
                                 <a href="/Apple_Shop/my_orders.php">📦 Đơn hàng của tôi</a>
                                 <a href="/Apple_Shop/wishlist.php">❤️ Sản phẩm yêu thích</a>
                                 <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
@@ -132,7 +145,7 @@ if ($is_user_logged_in) {
             <div class="cart-icon" id="cart-icon-desktop">
                 <a href="/Apple_Shop/cart.php" aria-label="Giỏ hàng (<?= $cart_count ?> sản phẩm)">
                     <i class="fas fa-shopping-cart"></i>
-                    <span class="cart-count"><?= $cart_count ?></span>
+                    <span class="cart-count" id="cart-item-count"><?= $cart_count ?></span>
                 </a>
             </div>
         </div>
@@ -159,7 +172,8 @@ if ($is_user_logged_in) {
                 <li><a href="/Apple_Shop/products/macbook.php">💻 MacBook & Mac</a></li>
                 <li><a href="/Apple_Shop/products/ipad.php">🎯 iPad Models</a></li>
                 <li><a href="/Apple_Shop/products/watch.php">⌚ Apple Watch</a></li>
-                <li><a href="/Apple_Shop/products/accessories.php">🎧 Accessories</a></li>
+                <li><a href="/Apple_Shop/products/airpods.php">🎧 AirPods</a></li>
+                <li><a href="/Apple_Shop/products/accessories.php"> <i class="fa-regular fa-keyboard"></i>Phụ kiện</a></li>
             </ul>
         </li>
         <li><a href="/Apple_Shop/promotion.php" class="<?= basename($_SERVER['PHP_SELF']) === 'promotion.php' ? 'active' : '' ?>">🛠️ Khuyến mại</a></li>
@@ -175,7 +189,7 @@ if ($is_user_logged_in) {
                     <i class="fas fa-chevron-down dropdown-indicator"></i>
                 </a>
                 <div class="user-dropdown-menu" id="mobile-user-dropdown-menu">
-                    <a href="/Apple_Shop/profile.php">👤 Thông tin cá nhân</a>
+                    <a href="/Apple_Shop/update_profile.php">👤 Thông tin cá nhân</a>
                     <a href="/Apple_Shop/my_orders.php">📦 Đơn hàng của tôi</a>
                     <a href="/Apple_Shop/wishlist.php">❤️ Sản phẩm yêu thích</a>
                     <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
@@ -194,7 +208,3 @@ if ($is_user_logged_in) {
     </ul>
 </div>
 <div class="mobile-nav-overlay"></div>
-
-<?php
-
-?>

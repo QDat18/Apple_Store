@@ -4,61 +4,50 @@ require_once 'config/db.php';
 
 $errors = [];
 $success = false;
+$token = $_GET['token'] ?? '';
 
-if (!isset($_SESSION['reset_email']) || !isset($_SESSION['reset_user_id']) || !isset($_SESSION['reset_otp']) || !isset($_SESSION['reset_otp_expires'])) {
-    header("Location: forgot_password.php");
-    exit;
+if (!$token) {
+    $errors[] = "Token không hợp lệ.";
 }
 
-$email = $_SESSION['reset_email'];
-$user_id = $_SESSION['reset_user_id'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token) {
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $otp = trim($_POST['otp'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-
-    // Validation
-    if (empty($otp) || empty($password) || empty($confirm_password)) {
+    if (!$password || !$confirm_password) {
         $errors[] = "Vui lòng nhập đầy đủ thông tin.";
-    }
-    if ($password !== $confirm_password) {
+    } elseif ($password !== $confirm_password) {
         $errors[] = "Mật khẩu nhập lại không khớp.";
-    }
-    if (!preg_match("/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/", $password)) {
-        $errors[] = "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.";
-    }
-    if ($otp !== $_SESSION['reset_otp']) {
-        $errors[] = "Mã OTP không đúng.";
-    }
-    if (time() > $_SESSION['reset_otp_expires']) {
-        $errors[] = "Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.";
-    }
-
-    if (empty($errors)) {
-        // Update password
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ? AND email = ?");
-        $stmt->bind_param("sis", $hashed_password, $user_id, $email);
-
-        if ($stmt->execute()) {
-            $success = true;
-            // Log password reset
-            $log_stmt = $conn->prepare("INSERT INTO logs (user_id, action, details) VALUES (?, 'reset_password', ?)");
-            $details = "User reset password: $email";
-            $log_stmt->bind_param("is", $user_id, $details);
-            $log_stmt->execute();
-            $log_stmt->close();
-
-            // Clear session
-            unset($_SESSION['reset_email']);
-            unset($_SESSION['reset_user_id']);
-            unset($_SESSION['reset_otp']);
-            unset($_SESSION['reset_otp_expires']);
-            $_SESSION['reset_attempts'] = 0;
+    } elseif (strlen($password) < 6) {
+        $errors[] = "Mật khẩu phải có ít nhất 6 ký tự.";
+    } else {
+        $stmt = $conn->prepare("SELECT email FROM password_resets WHERE token = ? AND expires_at > CURRENT_TIMESTAMP");
+        $stmt->bind_param("s", $token);
+        $stmt->execute();
+        $stmt->store_result();
+        
+        if ($stmt->num_rows === 1) {
+            $stmt->bind_result($email);
+            $stmt->fetch();
+            
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $update_stmt = $conn->prepare("UPDATE users SET password = ? WHERE email = ?");
+            $update_stmt->bind_param("ss", $hashed_password, $email);
+            
+            if ($update_stmt->execute()) {
+                $delete_stmt = $conn->prepare("DELETE FROM password_resets WHERE token = ?");
+                $delete_stmt->bind_param("s", $token);
+                $delete_stmt->execute();
+                $delete_stmt->close();
+                
+                $success = true;
+                $message = "Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập ngay bây giờ.";
+            } else {
+                $errors[] = "Có lỗi khi đặt lại mật khẩu. Vui lòng thử lại.";
+            }
+            $update_stmt->close();
         } else {
-            $errors[] = "Lỗi cơ sở dữ liệu: " . $stmt->error;
-            error_log("SQL Error in reset_password.php: " . $stmt->error);
+            $errors[] = "Token không hợp lệ hoặc đã hết hạn.";
         }
         $stmt->close();
     }
@@ -78,12 +67,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
     <?php include 'includes/header.php'; ?>
-
     <main class="container">
         <div class="auth-container">
             <div class="auth-header">
                 <h1 class="auth-title">Đặt lại mật khẩu</h1>
-                <p class="auth-subtitle">Nhập mã OTP và mật khẩu mới</p>
+                <p class="auth-subtitle">Nhập mật khẩu mới cho tài khoản của bạn</p>
             </div>
 
             <?php if (!empty($errors)): ?>
@@ -94,57 +82,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php elseif ($success): ?>
                 <div class="alert alert-success" style="color: green; margin: 10px 0;">
-                    <p>✅ Mật khẩu đã được đặt lại thành công! Bạn có thể <a href="login.php" class="form-link">đăng nhập ngay</a>.</p>
+                    <p><?= htmlspecialchars($message) ?></p>
+                    <a href="login.php" class="auth-button" style="display: inline-block; text-decoration: none; padding: 12px 30px;">
+                        <i class="fas fa-sign-in-alt"></i> Đăng nhập ngay
+                    </a>
                 </div>
             <?php endif; ?>
 
-            <?php if (!$success): ?>
+            <?php if (!$success && $token): ?>
                 <form class="auth-form" method="POST">
-                    <div class="form-group">
-                        <label for="otp" class="form-label">Mã OTP</label>
-                        <input type="text" name="otp" id="otp" class="form-input" 
-                               placeholder="Nhập mã OTP từ email" required>
-                    </div>
                     <div class="form-group">
                         <label for="password" class="form-label">Mật khẩu mới</label>
                         <input type="password" name="password" id="password" class="form-input" 
-                               placeholder="Nhập mật khẩu mới" required>
-                        <div class="password-strength-container">
-                            <div class="password-strength-bar">
-                                <div class="password-strength-fill"></div>
-                            </div>
-                            <div class="password-strength-text">Độ mạnh mật khẩu</div>
-                            <div class="password-strength-tips">
-                                <ul>
-                                    <li><span class="icon length">❌</span>Ít nhất 8 ký tự</li>
-                                    <li><span class="icon uppercase">❌</span>Chứa chữ hoa (A-Z)</li>
-                                    <li><span class="icon number">❌</span>Chứa số (0-9)</li>
-                                    <li><span class="icon special">❌</span>Chứa ký tự đặc biệt (@$!%*?&)</li>
-                                </ul>
-                            </div>
-                        </div>
+                               placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)" 
+                               required>
                     </div>
                     <div class="form-group">
                         <label for="confirm_password" class="form-label">Nhập lại mật khẩu</label>
                         <input type="password" name="confirm_password" id="confirm_password" class="form-input" 
-                               placeholder="Nhập lại mật khẩu mới" required>
+                               placeholder="Nhập lại mật khẩu mới" 
+                               required>
                     </div>
                     <button type="submit" class="auth-button">
-                        <i class="fas fa-lock"></i> Đặt lại mật khẩu
+                        <i class="fas fa-save"></i> Đặt lại mật khẩu
                     </button>
                 </form>
             <?php endif; ?>
-
+            
             <div class="auth-footer">
-                <a href="forgot_password.php" class="form-link">Gửi lại OTP</a>
-                <span> | </span>
                 <a href="login.php" class="form-link">Quay lại đăng nhập</a>
+                <span> | </span>
+                <a href="register.php" class="form-link">Đăng ký ngay</a>
             </div>
         </div>
     </main>
-
     <?php include 'includes/footer.php'; ?>
-
     <script>
         document.querySelector('.auth-form')?.addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
@@ -155,88 +127,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 alert('Mật khẩu nhập lại không khớp!');
                 return false;
             }
-            
-            document.querySelector('.auth-button').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
-            document.querySelector('.auth-button').disabled = true;
-        });
-
-        document.getElementById('password').addEventListener('input', function() {
-            const password = this.value;
-            const strengthContainer = document.querySelector('.password-strength-container');
-            const strengthFill = document.querySelector('.password-strength-fill');
-            const strengthText = document.querySelector('.password-strength-text');
-            const lengthIcon = document.querySelector('.icon.length');
-            const uppercaseIcon = document.querySelector('.icon.uppercase');
-            const numberIcon = document.querySelector('.icon.number');
-            const specialIcon = document.querySelector('.icon.special');
-
-            let strength = 0;
-
-            // Check password criteria
-            if (password.length >= 8) {
-                strength++;
-                lengthIcon.textContent = '✅';
-                lengthIcon.classList.remove('invalid');
-                lengthIcon.classList.add('valid');
-            } else {
-                lengthIcon.textContent = '❌';
-                lengthIcon.classList.remove('valid');
-                lengthIcon.classList.add('invalid');
-            }
-
-            if (/[A-Z]/.test(password)) {
-                strength++;
-                uppercaseIcon.textContent = '✅';
-                uppercaseIcon.classList.remove('invalid');
-                uppercaseIcon.classList.add('valid');
-            } else {
-                uppercaseIcon.textContent = '❌';
-                uppercaseIcon.classList.remove('valid');
-                uppercaseIcon.classList.add('invalid');
-            }
-
-            if (/[0-9]/.test(password)) {
-                strength++;
-                numberIcon.textContent = '✅';
-                numberIcon.classList.remove('invalid');
-                numberIcon.classList.add('valid');
-            } else {
-                numberIcon.textContent = '❌';
-                numberIcon.classList.remove('valid');
-                numberIcon.classList.add('invalid');
-            }
-
-            if (/[@$!%*?&]/.test(password)) {
-                strength++;
-                specialIcon.textContent = '✅';
-                specialIcon.classList.remove('invalid');
-                specialIcon.classList.add('valid');
-            } else {
-                specialIcon.textContent = '❌';
-                specialIcon.classList.remove('valid');
-                specialIcon.classList.add('invalid');
-            }
-
-            // Update progress bar and text
-            strengthContainer.className = 'password-strength-container';
-            switch(strength) {
-                case 0:
-                case 1:
-                    strengthContainer.classList.add('strength-weak');
-                    strengthText.textContent = 'Mật khẩu yếu';
-                    break;
-                case 2:
-                    strengthContainer.classList.add('strength-medium');
-                    strengthText.textContent = 'Mật khẩu trung bình';
-                    break;
-                case 3:
-                    strengthContainer.classList.add('strength-good');
-                    strengthText.textContent = 'Mật khẩu tốt';
-                    break;
-                case 4:
-                    strengthContainer.classList.add('strength-strong');
-                    strengthText.textContent = 'Mật khẩu mạnh';
-                    break;
+            if (password.length < 6) {
+                e.preventDefault();
+                alert('Mật khẩu phải có ít nhất 6 ký tự!');
+                return false;
             }
         });
     </script>

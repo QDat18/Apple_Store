@@ -8,8 +8,7 @@ $success = false;
 if (isset($_GET['token'])) {
     $token = $_GET['token'];
     
-    // Check token and expiration
-    $stmt = $conn->prepare("SELECT id, email, is_verified FROM users WHERE verify_token = ? AND is_verified = 0 AND (verify_token_expires_at IS NULL OR verify_token_expires_at > NOW())");
+    $stmt = $conn->prepare("SELECT id, email, is_verified FROM users WHERE verify_token = ? AND is_verified = 0 AND verify_token_expires_at > CURRENT_TIMESTAMP");
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $stmt->store_result();
@@ -18,22 +17,12 @@ if (isset($_GET['token'])) {
         $stmt->bind_result($user_id, $email, $is_verified);
         $stmt->fetch();
         
-        // Update verification status
         $update_stmt = $conn->prepare("UPDATE users SET is_verified = 1, verify_token = NULL, verify_token_expires_at = NULL WHERE id = ?");
         $update_stmt->bind_param("i", $user_id);
         
         if ($update_stmt->execute()) {
             $success = true;
             $message = "Email đã được xác thực thành công! Bạn có thể đăng nhập ngay bây giờ.";
-            
-            // Log verification
-            $log_stmt = $conn->prepare("INSERT INTO logs (user_id, action, details) VALUES (?, 'verify_email', ?)");
-            $details = "User verified email: $email";
-            $log_stmt->bind_param("is", $user_id, $details);
-            $log_stmt->execute();
-            $log_stmt->close();
-            
-            // Clear pending session
             unset($_SESSION['pending_verify_email']);
             unset($_SESSION['verify_token']);
         } else {
@@ -62,7 +51,6 @@ if (isset($_GET['token'])) {
 </head>
 <body>
     <?php include 'includes/header.php'; ?>
-
     <main class="container">
         <div class="auth-container">
             <div class="auth-header">
@@ -89,7 +77,6 @@ if (isset($_GET['token'])) {
             </div>
         </div>
     </main>
-
     <?php include 'includes/footer.php'; ?>
 </body>
 </html>
